@@ -25,8 +25,7 @@
 
 ## Técnico
 
-- [ ] **Subir los cambios a GitHub.** Todo lo hecho desde la reorganización
-      del README todavía no está en el repositorio.
+- [x] Subir los cambios a GitHub (19 de noviembre de 2026).
 - [ ] **Diana:** después de `git pull`, correr
       `python -m pip install -r requirements.txt` (se agregó `plotly`).
 - [ ] (Opcional) Cambiar los textos de las gráficas de `experimentos.py`
