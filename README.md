@@ -155,13 +155,88 @@ Colores en todas las graficas: **azul** = rodear, **naranja** = buscar,
 **verde** = espiral, gris = posicion inicial, X amarilla = presa,
 estrella roja = optimo real.
 
-### Contenido de `resultados/`
+---
 
-- `base.csv` y `base_convergencia.png`: las 5 funciones con los parametros
-  por defecto, 30 corridas cada una.
-- `<Funcion>_<parametro>.csv/.png`: barrido de un parametro (25 archivos de
-  cada tipo). Cada PNG tiene boxplot del resultado final y la convergencia
-  media.
+## La carpeta `resultados/`
+
+Tiene todo lo necesario para las secciones de **Resultados** y **Discusion**
+del reporte. La genera `python experimentos.py` (52 archivos): tablas
+(`.csv`, se abren en Excel) y graficas (`.png`).
+
+### Que hay
+
+| Archivo | Que es |
+|---|---|
+| `base.csv` + `base_convergencia.png` | Las 5 funciones con los **parametros por defecto** (30 ballenas, 200 iteraciones, a=2, b=1, p=0.5), 30 corridas cada una. Es el punto de referencia. |
+| `<Funcion>_<parametro>.csv` + `.png` | 25 pares (5 funciones x 5 parametros). Cada uno varia **un solo parametro** y deja los demas por defecto. Ejemplo: `Rosenbrock_a_inicial` prueba a = 1, 2 y 3 en Rosenbrock. |
+
+### Como leer los CSV
+
+Cada fila resume **30 corridas** (semillas 0 a 29) con la misma
+configuracion:
+
+| Columna | Significado |
+|---|---|
+| `media` | Promedio del mejor resultado. Se ve muy afectada por corridas malas. |
+| `desv_est` | Que tan distintas fueron las corridas entre si. |
+| `mediana` | El valor del medio: la corrida "tipica". |
+| `mejor` / `peor` | La mejor y la peor de las 30 corridas. |
+| `tiempo_medio_s` | Segundos por corrida. |
+
+Todos los valores son **error respecto al optimo**: el minimo real de las 5
+funciones es 0, asi que mas cerca de 0 es mejor. Por ejemplo, `1.8e-15`
+significa 0.0000000000000018, practicamente 0.
+
+**Media contra mediana:** en Beale la media es 0.10 pero la mediana es
+~1e-8. Eso indica que casi todas las corridas aciertan y unas pocas se quedan
+atoradas en ~0.76, lo que jala el promedio hacia arriba. Por eso se reportan
+las dos.
+
+### Como leer las graficas
+
+**`base_convergencia.png`: una linea por funcion.**
+
+- Eje X: iteracion. Eje Y: el mejor valor encontrado hasta ese momento,
+  promediado sobre las 30 corridas, en escala **logaritmica** (cada marca es
+  100 000 veces menor).
+- **Sphere** baja sin parar hasta 1e-31: es la mas facil.
+- **Rosenbrock** y **Beale** se quedan planas desde temprano: estancadas.
+- **Rastrigin** se ve plana hasta ~90 y luego cae de golpe. Como es un
+  *promedio*, la linea solo baja cuando las ultimas corridas logran escapar
+  de los minimos locales.
+- Ojo al comparar: Rastrigin, Sphere y Rosenbrock estan en 10 dimensiones;
+  Ackley y Beale en 2.
+
+**Graficas de parametros (ejemplo: `Rosenbrock_a_inicial.png`).** Tienen dos
+paneles:
+
+- **Izquierda, boxplot del resultado final:** una caja por valor del
+  parametro. La linea naranja es la mediana; la caja contiene el 50 % central
+  de las corridas (caja alta = resultados muy variables); los bigotes marcan
+  el rango normal y los circulos son corridas atipicas. Mas abajo es mejor.
+  En el ejemplo: con a=1 todas quedan en ~9, con a=2 hay mucha variacion y
+  con a=3 la mediana baja a ~0.09.
+- **Derecha, convergencia media:** una linea por valor. En el ejemplo, a=1
+  baja **mas rapido** al principio pero se estanca en ~9: explota demasiado
+  pronto y nunca explora (**convergencia prematura**). a=3 es mas lenta al
+  inicio porque explora mas tiempo, pero **termina mas abajo**. Es el
+  equilibrio exploracion/explotacion visto en datos reales.
+
+### Como usarla en el reporte
+
+- **Resultados:** `base.csv` como tabla principal y
+  `base_convergencia.png`. Agregar las tablas y graficas de los barridos que
+  muestren algo interesante; no hace falta incluir las 25.
+- **Discusion:** por cada grafica explicar **por que** pasa usando el
+  mecanismo (`a`, |A|, las 3 reglas), no solo "subio o bajo". Los barridos
+  con mas que decir: a_inicial y max_iter en Rosenbrock y Rastrigin,
+  p_umbral en Rosenbrock, y el caso de Beale.
+- **Experimentacion:** mencionar que son 30 corridas por configuracion, con
+  semilla = numero de corrida, asi que todo es reproducible.
+
+Si se cambian parametros o codigo y se vuelve a correr
+`python experimentos.py`, estos archivos se sobrescriben. Con el codigo
+actual salen identicos.
 
 ---
 
