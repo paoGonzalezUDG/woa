@@ -12,8 +12,8 @@ import time
 import numpy as np
 import pandas as pd
 
-from funciones import FUNCIONES
-from woa import woa
+from algoritmo.funciones import FUNCIONES
+from algoritmo.woa import woa
 
 PARAMS_DEFAULT = dict(n_ballenas=30, max_iter=200, a_inicial=2.0,
                       b=1.0, p_umbral=0.5)
@@ -79,6 +79,44 @@ BARRIDOS = {
     "p_umbral": [0.2, 0.5, 0.8],
 }
 
+# Experimento de sesgo al centro: funciones con el optimo en el origen y
+# cuanto se mueve el optimo (en cada eje) para la version desplazada.
+SESGO = {"Rastrigin": 2.0, "Ackley": 1.5, "Sphere": 30.0}
+
+
+def desplazar(f, s):
+    """f(x - s): la misma funcion con el optimo movido s en cada eje."""
+    return lambda x: f(np.asarray(x) - s)
+
+
+def experimento_sesgo(n, plt):
+    carpeta = "resultados/6_sesgo_centro"
+    os.makedirs(carpeta, exist_ok=True)
+    filas = []
+    fig, axs = plt.subplots(1, len(SESGO), figsize=(12, 4))
+    for ax, (nombre, s) in zip(axs, SESGO.items()):
+        cfg = FUNCIONES[nombre]
+        dim = cfg["dim"] or cfg["dim_default"]
+        datos = []
+        for caso, sv in (("original", 0.0), ("desplazada", s)):
+            f = cfg["f"] if sv == 0 else desplazar(cfg["f"], sv)
+            fin = np.array([woa(f, cfg["lb"], cfg["ub"], dim, seed=k,
+                                **PARAMS_DEFAULT)["mejor_f"]
+                            for k in range(n)])
+            filas.append({"funcion": nombre, "caso": caso,
+                          "optimo_en": sv, "dim": dim, **resumen(fin)})
+            datos.append(fin)
+        ax.boxplot(datos, tick_labels=["optimo en 0", f"optimo en {s:g}"])
+        ax.set_yscale("symlog", linthresh=1e-12)
+        ax.set_title(f"{nombre} ({dim} variables)")
+    axs[0].set_ylabel("Mejor fitness final")
+    fig.suptitle("Misma funcion, optimo movido de lugar (sesgo al centro)")
+    fig.tight_layout()
+    fig.savefig(f"{carpeta}/comparacion.png", dpi=130)
+    plt.close(fig)
+    pd.DataFrame(filas).to_csv(f"{carpeta}/resumen.csv", index=False)
+    print("sesgo al centro listo")
+
 
 def main():
     import matplotlib
@@ -86,10 +124,18 @@ def main():
     import matplotlib.pyplot as plt
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--rapido", action="store_true")
+    ap.add_argument("--rapido", action="store_true",
+                    help="5 corridas en vez de 30 (solo para probar)")
+    ap.add_argument("--solo-sesgo", action="store_true",
+                    help="correr solo el experimento de sesgo al centro")
     args = ap.parse_args()
     n = 5 if args.rapido else 30
-    os.makedirs("resultados", exist_ok=True)
+    if args.solo_sesgo:
+        experimento_sesgo(n, plt)
+        return
+    # Estructura: resultados/0_base/ y una carpeta por funcion, numeradas en
+    # el orden de Wikipedia (1_Rastrigin, 2_Ackley, ...).
+    os.makedirs("resultados/0_base", exist_ok=True)
 
     # 1) Tabla base: parametros del paper, 30 corridas por funcion
     filas = []
@@ -98,18 +144,20 @@ def main():
         fin, cur, tie = correr(nombre, n_corridas=n)
         filas.append({"funcion": nombre, **resumen(fin, tie)})
         plt.semilogy(np.mean(cur, axis=0) + 1e-300, label=nombre)
-    pd.DataFrame(filas).to_csv("resultados/base.csv", index=False)
+    pd.DataFrame(filas).to_csv("resultados/0_base/resumen.csv", index=False)
     plt.xlabel("Iteracion"); plt.ylabel("Mejor fitness medio (log)")
     plt.legend(); plt.title("Convergencia con parametros por defecto")
-    plt.tight_layout(); plt.savefig("resultados/base_convergencia.png", dpi=150)
+    plt.tight_layout(); plt.savefig("resultados/0_base/convergencia.png", dpi=150)
     plt.close()
     print("base listo")
 
     # 2) Barridos de parametros por funcion
-    for nombre in FUNCIONES:
+    for num, nombre in enumerate(FUNCIONES, start=1):
+        carpeta = f"resultados/{num}_{nombre}"
+        os.makedirs(carpeta, exist_ok=True)
         for par, vals in BARRIDOS.items():
             df, fin_d, cur_d = barrido(nombre, par, vals, n_corridas=n)
-            df.to_csv(f"resultados/{nombre}_{par}.csv", index=False)
+            df.to_csv(f"{carpeta}/{par}.csv", index=False)
             fig, ax = plt.subplots(1, 2, figsize=(11, 4))
             ax[0].boxplot([fin_d[v] for v in vals], tick_labels=[str(v) for v in vals])
             ax[0].set_yscale("symlog", linthresh=1e-12)
@@ -119,9 +167,12 @@ def main():
             ax[1].set_xlabel("Iteracion"); ax[1].legend()
             fig.suptitle(f"{nombre}: efecto de {par}")
             fig.tight_layout()
-            fig.savefig(f"resultados/{nombre}_{par}.png", dpi=130)
+            fig.savefig(f"{carpeta}/{par}.png", dpi=130)
             plt.close(fig)
         print(nombre, "listo")
+
+    # 3) Sesgo al centro: misma funcion con el optimo movido de lugar
+    experimento_sesgo(n, plt)
 
 
 if __name__ == "__main__":

@@ -9,9 +9,9 @@ elegida, la distancia D y la posicion antes y despues.
 import matplotlib.pyplot as plt
 import numpy as np
 
-import visual
+from interfaz import visual
 
-NOMBRES = ["RODEAR LA PRESA", "BUSCAR OTRA PRESA", "ESPIRAL"]
+NOMBRES = ["Rodear la presa", "Buscar otra zona", "Espiral"]
 
 
 def woa_detallado(f, lb, ub, dim, n_ballenas=30, max_iter=200, a_inicial=2.0,
@@ -93,75 +93,74 @@ def v(x):
 
 
 def explicacion(it, d, max_iter, a_inicial, b, p_umbral):
-    a, A, C = it["a"], d["A"], d["C"]
+    """Texto (markdown) con las cuentas de esta ballena, en lenguaje sencillo."""
+    a, A, C, p, l, t = it["a"], d["A"], d["C"], d["p"], d["l"], it["t"]
     L = []
-    L.append(f"**1. El reloj del algoritmo.** Iteracion t = {it['t']} de "
-             f"{max_iter}:  \n`a = {a_inicial:g} * (1 - {it['t']}/{max_iter})"
-             f" = {a:.3f}`")
-    L.append(f"**2. Numeros aleatorios de esta ballena:**  \n"
-             f"`r1 = {d['r1']:.3f}  ->  A = 2*a*r1 - a = 2*{a:.3f}*{d['r1']:.3f}"
-             f" - {a:.3f} = {A:.3f}`  \n"
-             f"`r2 = {d['r2']:.3f}  ->  C = 2*r2 = {C:.3f}`  \n"
-             f"`p = {d['p']:.3f}`,  `l = {d['l']:.3f}`")
-    if d["p"] < p_umbral:
-        L.append(f"**3. Primera decision:** p = {d['p']:.3f} < {p_umbral:g} "
-                 f"-> NO usa espiral; usa rodear o buscar.")
+    L.append(f"**1. El reloj.** Vamos en la vuelta {t} de {max_iter}. El reloj "
+             f"empieza en {a_inicial:g} y baja hasta 0:  \n"
+             f"`a = {a_inicial:g} × (1 − {t}/{max_iter}) = {a:.3f}`")
+    L.append("**2. Los números al azar de esta ballena.**  \n"
+             f"`r1 = {d['r1']:.3f}` → `A = 2·a·r1 − a = {A:.3f}`  \n"
+             f"`r2 = {d['r2']:.3f}` → `C = 2·r2 = {C:.3f}`  \n"
+             f"`p = {p:.3f}` · `l = {l:.3f}`")
+    if p < p_umbral:
+        L.append(f"**3. ¿Espiral?** `p = {p:.3f}` es menor que {p_umbral:g}, "
+                 "así que **no**: toca rodear o buscar.")
         if d["regla"] == 0:
-            L.append(f"**4. Segunda decision:** |A| = {abs(A):.3f} < 1 -> "
-                     f"**{NOMBRES[0]}** (explotacion): se acerca a la "
-                     f"mejor solucion X*.")
-            L.append(f"**5. Calculo:**  \n"
-                     f"`X  = {v(d['x_antes'])}`  (ballena antes)  \n"
-                     f"`X* = {v(d['objetivo'])}`  (presa)  \n"
-                     f"`C*X* = {v(C * d['objetivo'])}`  \n"
-                     f"`D = |C*X* - X| = {v(d['D'])}`  \n"
-                     f"`X_nuevo = X* - A*D = {v(d['objetivo'])} - ({A:.3f})*"
-                     f"{v(d['D'])} = {v(d['x_nuevo'])}`")
-            L.append("Como |A| < 1, el paso A*D es mas corto que D: la ballena "
-                     "cae **cerca de la presa** (si A > 0, de un lado; si "
-                     "A < 0, del otro).")
+            L.append(f"**4. ¿Rodear o buscar?** `|A| = {abs(A):.3f}` es menor "
+                     "que 1 → **rodear la presa**: se acerca a la mejor "
+                     "ballena.")
+            L.append("**5. Las cuentas:**\n```text\n"
+                     f"Ballena antes   X  = {v(d['x_antes'])}\n"
+                     f"Presa (mejor)   X* = {v(d['objetivo'])}\n"
+                     f"Distancia       D  = |C·X* − X| = {v(d['D'])}\n"
+                     f"Nueva posición     = X* − A·D   = {v(d['x_nuevo'])}\n"
+                     "```")
+            L.append("Como `|A|` es menor que 1, el paso es más corto que la "
+                     "distancia: la ballena cae **cerca de la presa**.")
         else:
-            L.append(f"**4. Segunda decision:** |A| = {abs(A):.3f} >= 1 -> "
-                     f"**{NOMBRES[1]}** (exploracion): en vez de la presa usa "
-                     f"la ballena #{d['j']}, elegida al azar.")
-            L.append(f"**5. Calculo:**  \n"
-                     f"`X     = {v(d['x_antes'])}`  (ballena antes)  \n"
-                     f"`Xrand = {v(d['objetivo'])}`  (ballena #{d['j']})  \n"
-                     f"`D = |C*Xrand - X| = {v(d['D'])}`  \n"
-                     f"`X_nuevo = Xrand - A*D = {v(d['x_nuevo'])}`")
-            L.append("Como |A| >= 1, el paso A*D es mas largo que D: la ballena "
-                     "**puede pasarse de largo** y caer en una zona nueva. Asi "
-                     "se explora sin depender de la presa.")
+            L.append(f"**4. ¿Rodear o buscar?** `|A| = {abs(A):.3f}` es 1 o "
+                     "más → **buscar otra zona**: en vez de seguir a la "
+                     f"mejor, sigue a la ballena #{d['j']}, elegida al azar.")
+            L.append("**5. Las cuentas:**\n```text\n"
+                     f"Ballena antes   X     = {v(d['x_antes'])}\n"
+                     f"Ballena al azar Xrand = {v(d['objetivo'])}\n"
+                     f"Distancia       D     = |C·Xrand − X| = {v(d['D'])}\n"
+                     f"Nueva posición        = Xrand − A·D   = "
+                     f"{v(d['x_nuevo'])}\n```")
+            L.append("Como `|A|` es 1 o más, el paso es más largo que la "
+                     "distancia: la ballena **se puede pasar de largo** y caer "
+                     "en una zona nueva. Así explora.")
     else:
-        g = np.exp(b * d["l"]) * np.cos(2 * np.pi * d["l"])
-        L.append(f"**3. Primera decision:** p = {d['p']:.3f} >= {p_umbral:g} "
-                 f"-> **{NOMBRES[2]}** (explotacion). Aqui A y C no se usan.")
-        L.append(f"**4. Calculo:**  \n"
-                 f"`X  = {v(d['x_antes'])}`  (ballena antes)  \n"
-                 f"`X* = {v(d['objetivo'])}`  (presa)  \n"
-                 f"`D = |X* - X| = {v(d['D'])}`  \n"
-                 f"`factor = e^(b*l) * cos(2*pi*l) = e^({b:g}*{d['l']:.3f}) * "
-                 f"cos(2*pi*{d['l']:.3f}) = {g:.3f}`  \n"
-                 f"`X_nuevo = D*factor + X* = {v(d['x_nuevo'])}`")
-        L.append("El factor oscila entre negativo y positivo segun l: la "
-                 "ballena queda a un lado u otro de la presa, a una distancia "
-                 "proporcional a D.")
-        L.append("**Ojo:** aunque se llama espiral, `l` es UN solo numero para "
-                 "todas las coordenadas. Por eso los destinos posibles quedan "
-                 "sobre una **recta** que pasa por X* en la direccion de D (la "
-                 "linea punteada). La forma de espiral esta en el factor "
-                 "e^(b l) cos(2 pi l) contra l (grafica de abajo a la "
-                 "derecha), que se encoge y oscila: es la idea de la red de "
-                 "burbujas del articulo.")
+        g = np.exp(b * l) * np.cos(2 * np.pi * l)
+        L.append(f"**3. ¿Espiral?** `p = {p:.3f}` es {p_umbral:g} o más, así "
+                 "que **sí: espiral** alrededor de la presa. Aquí `A` y `C` "
+                 "no se usan.")
+        L.append("**4. Las cuentas:**\n```text\n"
+                 f"Ballena antes   X  = {v(d['x_antes'])}\n"
+                 f"Presa (mejor)   X* = {v(d['objetivo'])}\n"
+                 f"Distancia       D  = |X* − X| = {v(d['D'])}\n"
+                 f"Factor             = e^(b·l)·cos(2π·l) = {g:.3f}\n"
+                 f"Nueva posición     = X* + D·factor = {v(d['x_nuevo'])}\n"
+                 "```")
+        L.append("El factor sube y baja según `l` (gráfica de abajo a la "
+                 "derecha), así que la ballena puede quedar de un lado o del "
+                 "otro de la presa.")
+        L.append("**Dato curioso:** aunque se llama espiral, la ballena cae "
+                 "sobre una **línea recta** que pasa por la presa (la línea "
+                 "punteada), porque `l` es un solo número para todas las "
+                 "coordenadas. La \"espiral\" está en cómo sube y baja el "
+                 "factor.")
     if not np.allclose(d["x_nuevo"], d["x_final"]):
-        L.append(f"**Recorte:** la nueva posicion se salio del dominio; "
-                 f"`np.clip` la regresa al borde: `{v(d['x_final'])}`")
-    cambio = "mejoro" if d["f_despues"] < d["f_antes"] else "empeoro"
-    L.append(f"**Resultado:** f paso de {d['f_antes']:.3e} a "
-             f"{d['f_despues']:.3e} ({cambio}). "
-             + ("Esta ballena se volvio la **nueva presa** al terminar la "
-                "iteracion." if it["mejoro"] and it["i_mejor"] == d["i"]
-                else "La presa solo cambia si alguna ballena supera a X*."))
+        L.append("**Se salió de la zona de búsqueda**, así que la regresamos "
+                 f"a la orilla: `{v(d['x_final'])}`")
+    mejoro = d["f_despues"] < d["f_antes"]
+    nueva = it["mejoro"] and it["i_mejor"] == d["i"]
+    L.append(f"**¿Le fue mejor?** Su valor pasó de `{d['f_antes']:.2e}` a "
+             f"`{d['f_despues']:.2e}`: " + ("**mejoró**." if mejoro
+                                            else "**empeoró**.")
+             + (" Además, se volvió la **nueva mejor ballena** (la presa)."
+                if nueva else ""))
     return "\n\n".join(L)
 
 
@@ -186,7 +185,7 @@ def figura_movimiento(f, lb, ub, it, d, b, zoom=True):
         g = np.exp(b * ls) * np.cos(2 * np.pi * ls)
         zonas.append(obj + np.outer(g, D))
         ax.plot(zonas[0][:, 0], zonas[0][:, 1], ":", color=col, lw=2,
-                label="posibles destinos (l en [-1,1])")
+                label="lugares posibles")
     else:
         if regla == 0:
             tramos = [np.linspace(-min(a, 1), min(a, 1), 50)]
@@ -195,26 +194,26 @@ def figura_movimiento(f, lb, ub, it, d, b, zoom=True):
         for k, As in enumerate(tramos):
             zonas.append(obj - np.outer(As, D))
             ax.plot(zonas[-1][:, 0], zonas[-1][:, 1], ":", color=col, lw=2,
-                    label="posibles destinos (otros A)" if k == 0 else None)
+                    label="lugares posibles" if k == 0 else None)
         cx = d["C"] * obj
         ax.scatter(*cx[:2], marker="D", facecolor="none", edgecolor=col, s=80,
-                   lw=1.5, label="C * objetivo")
+                   lw=1.5, label="C × a quien sigue")
         ax.plot([obj[0], cx[0]], [obj[1], cx[1]], "--", color=col, lw=0.8)
 
     if regla == 1:
         ax.scatter(*obj[:2], marker="D", c=col, edgecolor="k", s=90,
-                   label=f"Xrand (ballena #{d['j']})", zorder=5)
+                   label=f"ballena al azar (#{d['j']})", zorder=5)
     ax.scatter(*it["presa"][:2], marker="X", c="yellow", edgecolor="k", s=180,
-               label="presa X*", zorder=6)
+               label="presa (la mejor)", zorder=6)
     ax.scatter(*d["x_antes"][:2], s=150, c="white", edgecolor="k", lw=2,
-               label="ballena ANTES", zorder=7)
+               label="ballena antes", zorder=7)
     ax.annotate("", xy=d["x_nuevo"][:2], xytext=d["x_antes"][:2],
                 arrowprops=dict(arrowstyle="->", color="k", lw=2), zorder=8)
     ax.scatter(*d["x_nuevo"][:2], s=150, c=col, edgecolor="k", lw=2,
-               label="ballena DESPUES", zorder=9)
+               label="ballena después", zorder=9)
     if not np.allclose(d["x_nuevo"], d["x_final"]):
         ax.scatter(*d["x_final"][:2], s=90, marker="s", c=col, edgecolor="k",
-                   label="despues del recorte", zorder=9)
+                   label="regresada a la zona", zorder=9)
 
     if zoom:
         pts = np.vstack([d["x_antes"], d["x_nuevo"], it["presa"], obj]
@@ -223,7 +222,8 @@ def figura_movimiento(f, lb, ub, it, d, b, zoom=True):
         centro, r = (lo + hi) / 2, max((hi - lo).max() * 0.75, (ub - lb) * 0.02)
         ax.set_xlim(max(lb, centro[0] - r), min(ub, centro[0] + r))
         ax.set_ylim(max(lb, centro[1] - r), min(ub, centro[1] + r))
-    ax.set_title(f"Iteracion {it['t']}, ballena #{d['i']}: {NOMBRES[regla]}",
+    ax.set_title(f"Vuelta {it['t']}, ballena #{d['i']}: "
+                 f"{NOMBRES[regla].lower()}",
                  color=col, fontsize=11, fontweight="bold")
     ax.legend(fontsize=7, loc="upper center", bbox_to_anchor=(0.5, -0.06),
               ncol=3, frameon=False)
@@ -243,13 +243,13 @@ def figura_decisiones(it, d, b, p_umbral, a_inicial):
     ax.axhspan(-1, 1, color=visual.COLORES_REGLAS[0], alpha=0.12)
     ax.text(0.02, 0.9, "|A| < 1: rodear", fontsize=8, transform=ax.transAxes,
             color=visual.COLORES_REGLAS[0])
-    ax.plot(r, 2 * a * r - a, "k-", label=f"A = 2a*r1 - a  (a={a:.2f})")
+    ax.plot(r, 2 * a * r - a, "k-", label=f"A = 2·a·r1 − a  (a = {a:.2f})")
     ax.scatter([d["r1"]], [d["A"]], s=80, c=visual.COLORES_REGLAS[regla],
                edgecolor="k", zorder=5)
     lim = max(a_inicial, 1.2)
     ax.set_ylim(-lim, lim); ax.set_xlim(0, 1)
     ax.set_xlabel("r1"); ax.set_ylabel("A"); ax.legend(fontsize=7, loc="lower right")
-    ax.set_title("De donde sale A", fontsize=10)
+    ax.set_title("¿De dónde sale A?", fontsize=10)
 
     # p contra el umbral
     ax = axs[1]
@@ -261,7 +261,7 @@ def figura_decisiones(it, d, b, p_umbral, a_inicial):
     ax.axvline(d["p"], color="k", lw=2)
     ax.text(d["p"], -0.42, f"p = {d['p']:.3f}", ha="center", fontsize=9)
     ax.set_xlim(0, 1); ax.set_ylim(-0.6, 0.6); ax.set_yticks([])
-    ax.set_title(f"Decision por p (umbral {p_umbral:g})", fontsize=10)
+    ax.set_title(f"¿Espiral? (volado p, umbral {p_umbral:g})", fontsize=10)
 
     # factor de la espiral
     ax = axs[2]
@@ -272,8 +272,8 @@ def figura_decisiones(it, d, b, p_umbral, a_inicial):
     usado = regla == 2
     ax.scatter([d["l"]], [g], s=80, edgecolor="k", zorder=5,
                c=visual.COLORES_REGLAS[2] if usado else "white")
-    ax.set_xlabel("l"); ax.set_ylabel("e^(b l) cos(2 pi l)")
-    ax.set_title("Factor de la espiral" + ("" if usado else " (no se uso)"),
+    ax.set_xlabel("l"); ax.set_ylabel("factor = e^(b·l)·cos(2π·l)")
+    ax.set_title("Factor de la espiral" + ("" if usado else " (no se usó)"),
                  fontsize=10)
     fig.tight_layout()
     return fig

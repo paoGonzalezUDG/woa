@@ -15,7 +15,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 from PIL import Image
 
-NOMBRES_REGLAS = ["Rodear (explota)", "Buscar (explora)", "Espiral (explota)"]
+NOMBRES_REGLAS = ["Rodear (afina)", "Buscar (explora)", "Espiral (afina)"]
 COLORES_REGLAS = np.array(["#1f77b4", "#ff7f0e", "#2ca02c"])
 COLOR_INICIAL = "#bbbbbb"
 
@@ -33,16 +33,16 @@ def fondo_contorno(ax, f, lb, ub, n=120):
     ax.set_xlim(lb, ub); ax.set_ylim(lb, ub); ax.set_aspect("equal")
 
 
-def leyenda_reglas(fig):
+def leyenda_reglas(fig, ncol=6):
     h = [Line2D([], [], marker="o", ls="", mfc=c, mec="k", label=n)
          for c, n in zip(COLORES_REGLAS, NOMBRES_REGLAS)]
     h.append(Line2D([], [], marker="o", ls="", mfc=COLOR_INICIAL, mec="k",
-                    label="inicio"))
+                    label="posición inicial"))
     h.append(Line2D([], [], marker="X", ls="", mfc="yellow", mec="k", ms=10,
-                    label="presa X*"))
+                    label="mejor ballena (presa)"))
     h.append(Line2D([], [], marker="*", ls="", mfc="red", mec="k", ms=13,
-                    label="optimo real"))
-    fig.legend(handles=h, loc="lower center", ncol=6, fontsize=8,
+                    label="mínimo real"))
+    fig.legend(handles=h, loc="lower center", ncol=ncol, fontsize=8,
                frameon=False)
 
 
@@ -75,9 +75,14 @@ def _armar_figura(casos):
                         zorder=4)
         txt = ax.text(0.02, 0.98, "", transform=ax.transAxes, va="top",
                       fontsize=9, bbox=dict(fc="white", alpha=0.85, lw=0))
+        ax.set_title(c["titulo"], fontsize=11)
         artistas.append((sc, pr, txt))
-    leyenda_reglas(fig)
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    if len(casos) > 1:
+        leyenda_reglas(fig, ncol=6)
+        fig.tight_layout(rect=(0, 0.06, 1, 1))
+    else:                                 # un panel: leyenda en 2 filas
+        leyenda_reglas(fig, ncol=3)
+        fig.tight_layout(rect=(0, 0.12, 1, 1))
     return fig, axs, artistas
 
 
@@ -89,15 +94,14 @@ def _dibujar_cuadro(casos, axs, artistas, frac):
         sc.set_offsets(pos[:, :2])
         sc.set_facecolors(_colores_iter(res, t))
         pr.set_offsets([res["presas"][t][:2]])
-        ax.set_title(c["titulo"], fontsize=11)
         if t == 0:
-            linea = "inicio aleatorio"
+            linea = "inicio: ballenas al azar"
         else:
             cuenta = np.bincount(res["reglas"][t - 1], minlength=3)
-            linea = (f"rodear {cuenta[0]} | buscar {cuenta[1]} | "
+            linea = (f"rodear {cuenta[0]} · buscar {cuenta[1]} · "
                      f"espiral {cuenta[2]}")
-        txt.set_text(f"iteracion {t}/{len(res['posiciones']) - 1}\n"
-                     f"mejor f = {res['curva'][t]:.2e}\n{linea}")
+        txt.set_text(f"vuelta {t} de {len(res['posiciones']) - 1}\n"
+                     f"mejor valor = {res['curva'][t]:.2e}\n{linea}")
 
 
 def figura_paneles(casos, frac):
@@ -149,13 +153,14 @@ def figura_reglas(casos, a_iniciales):
         ax.stackplot(x, frac, colors=COLORES_REGLAS, labels=NOMBRES_REGLAS,
                      alpha=0.85)
         ax2 = ax.twinx()
-        ax2.plot(x, a0 * (1 - np.arange(T) / T), "k--", lw=1.5, label="a(t)")
+        ax2.plot(x, a0 * (1 - np.arange(T) / T), "k--", lw=1.5,
+                 label="reloj a")
         ax2.axhline(1, color="k", lw=0.6, ls=":")
         ax2.set_ylim(0, max(3, a0) * 1.05)
-        ax2.set_ylabel("a(t)  (linea punteada: a = 1)", fontsize=8)
+        ax2.set_ylabel("reloj a (raya fina: a = 1)", fontsize=8)
         ax.set_xlim(0, 100); ax.set_ylim(0, 1)
         ax.set_xlabel("% del recorrido"); ax.set_title(c["titulo"], fontsize=10)
-    axs[0].set_ylabel("Fraccion de ballenas")
+    axs[0].set_ylabel("Fracción de ballenas")
     axs[0].legend(loc="lower left", fontsize=7)
     fig.tight_layout()
     return fig
@@ -175,11 +180,11 @@ def figura_diversidad_convergencia(casos, colores=("#d62728", "#9467bd")):
         a1.semilogy(x, diversidad(res, c["lb"], c["ub"]) + 1e-300, color=col,
                     label=c["titulo"])
         a2.semilogy(x, res["curva"] + 1e-300, color=col, label=c["titulo"])
-    a1.set_title("Dispersion de las ballenas\n(alta = exploran, baja = explotan)",
-                 fontsize=10)
-    a1.set_xlabel("% del recorrido"); a1.set_ylabel("distancia media al centro")
-    a2.set_title("Convergencia (mejor fitness)", fontsize=10)
-    a2.set_xlabel("% del recorrido"); a2.set_ylabel("mejor f (log)")
+    a1.set_title("¿Qué tan separadas están?\n(separadas = exploran, "
+                 "juntas = afinan)", fontsize=10)
+    a1.set_xlabel("% del recorrido"); a1.set_ylabel("separación promedio")
+    a2.set_title("Cómo fue mejorando", fontsize=10)
+    a2.set_xlabel("% del recorrido"); a2.set_ylabel("mejor valor (escala log)")
     for a in (a1, a2):
         a.grid(alpha=.3); a.legend(fontsize=8)
     fig.tight_layout()

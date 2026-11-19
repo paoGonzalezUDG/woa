@@ -1,66 +1,178 @@
 """
 Interfaz web local para el proyecto WOA (Streamlit).
 Ejecutar con:   streamlit run app.py
+
+Todos los textos de la interfaz estan en lenguaje sencillo a proposito: la
+idea es que la app sirva para entender el algoritmo y escribir el reporte.
 """
 import io
+import os
+import re
+import zipfile
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
 
+from algoritmo.funciones import FUNCIONES
+from algoritmo.woa import woa
 from experimentos import PARAMS_DEFAULT, barrido
-from funciones import FUNCIONES
-from woa import woa
-import paso_a_paso
-import visual
+from interfaz import paso_a_paso, visual, visual3d
 
 st.set_page_config(page_title="WOA - Proyecto final", layout="wide")
-st.title("Whale Optimization Algorithm (WOA)")
+
+CARPETA_APP = os.path.dirname(os.path.abspath(__file__))
+CARPETA_RES = os.path.join(CARPETA_APP, "resultados")
+ARCHIVO_REPORTE = os.path.join(CARPETA_APP, "docs", "reporte_referencia.md")
+
+# Nombres sencillos para mostrar en pantalla
+NOMBRE_PARAM = {"n_ballenas": "Ballenas", "max_iter": "Vueltas",
+                "a_inicial": "Exploración inicial (a)",
+                "b": "Apertura de la espiral (b)",
+                "p_umbral": "Umbral rodear/espiral (p)",
+                "dim": "Número de variables"}
+CORTO_PARAM = {"n_ballenas": "ballenas", "max_iter": "vueltas",
+               "a_inicial": "a", "b": "b", "p_umbral": "umbral p",
+               "dim": "variables"}
+NOMBRE_COLUMNA = {"media": "Promedio", "desv_est": "Variación",
+                  "mediana": "Mediana", "mejor": "Mejor", "peor": "Peor",
+                  "tiempo_medio_s": "Seg. por corrida", "funcion": "Función",
+                  "caso": "Caso", "optimo_en": "Mínimo en",
+                  "dist_optimo": "Distancia al mínimo real",
+                  "dist_centro": "Distancia al centro (0)",
+                  **{k: v for k, v in NOMBRE_PARAM.items()}}
+NOMBRE_COLUMNA["dim"] = "Variables"
+COLUMNAS_NUMERO = ["Promedio", "Variación", "Mediana", "Mejor", "Peor",
+                   "Distancia al mínimo real", "Distancia al centro (0)"]
+
+
+def tabla_bonita(df):
+    """Renombra columnas a lenguaje sencillo y formatea los numeros."""
+    df = df.rename(columns=NOMBRE_COLUMNA)
+    fmt = {c: "{:.2e}" for c in COLUMNAS_NUMERO if c in df}
+    if "Seg. por corrida" in df:
+        fmt["Seg. por corrida"] = "{:.3f}"
+    return df.style.format(fmt)
+
+
+def mostrar(fig):
+    st.pyplot(fig)
+    plt.close(fig)
+
+
+COMO_LEER_NUMEROS = """
+- Los números son el **error**: qué tan lejos quedó del mínimo real, que en
+  las 5 funciones es **0**. Más cerca de 0 = mejor.
+- `1.5e-15` es notación científica: 0.0000000000000015, o sea, **casi cero**.
+  `3.2e+01` = 32.
+- **Promedio vs. mediana.** Si 5 corridas dan 1, 1, 1, 1 y 96, el promedio es
+  20 (lo jala la corrida mala) pero la mediana es 1 (la corrida típica). Por
+  eso conviene ver las dos.
+- **Variación**: qué tan distintas salieron las corridas entre sí.
+"""
+COMO_LEER_CAJAS = """
+- **Cajas:** una por cada valor probado. La línea naranja es la mediana, la
+  caja guarda la mitad de las corridas (caja alta = resultados muy
+  distintos) y los circulitos son corridas raras. Más abajo = mejor.
+- **Líneas:** cómo fue mejorando el resultado vuelta por vuelta.
+- La escala es **logarítmica**: cada raya es 10, 100 o más veces más chica
+  que la anterior. Sirve para ver números muy pequeños.
+"""
 
 # ----------------------------- Barra lateral -------------------------------
-st.sidebar.header("Problema")
-nombre = st.sidebar.selectbox("Funcion", list(FUNCIONES))
+VALORES_ARTICULO = dict(
+    sb_ballenas=PARAMS_DEFAULT["n_ballenas"],
+    sb_vueltas=PARAMS_DEFAULT["max_iter"],
+    sb_a=PARAMS_DEFAULT["a_inicial"], sb_b=PARAMS_DEFAULT["b"],
+    sb_p=PARAMS_DEFAULT["p_umbral"], sb_semilla=0)
+for _k, _v in VALORES_ARTICULO.items():      # valor inicial, solo una vez
+    st.session_state.setdefault(_k, _v)
+
+
+def valores_por_defecto():
+    st.session_state.update(VALORES_ARTICULO)
+
+
+st.sidebar.header("1. Elige la función")
+nombre = st.sidebar.selectbox(
+    "Función", list(FUNCIONES),
+    help="Es el “terreno” donde las ballenas buscan el punto más bajo. "
+         "Cada una tiene una trampa distinta (ver la pestaña Empieza aquí).")
 cfg = FUNCIONES[nombre]
-st.sidebar.code(cfg["formula"], language=None)
 
 if cfg["dim"] is None:
-    dim = st.sidebar.number_input("Dimension (n)", 2, 100, cfg["dim_default"])
+    dim = st.sidebar.number_input(
+        "Número de variables", 2, 100, cfg["dim_default"],
+        key=f"sb_dim_{nombre}",
+        help="Cuántos números tiene cada punto. Con 2 variables un punto es "
+             "(x, y) y se puede dibujar como mapa. Con 10 ya no se puede "
+             "dibujar, pero el algoritmo funciona igual.")
 else:
     dim = cfg["dim"]
-    st.sidebar.write(f"Dimension fija: {dim}")
-lb = st.sidebar.number_input("Limite inferior", value=float(cfg["lb"]),
-                             key=f"lb_{nombre}")
-ub = st.sidebar.number_input("Limite superior", value=float(cfg["ub"]),
-                             key=f"ub_{nombre}")
+    st.sidebar.caption(f"{nombre} solo existe con {dim} variables (x, y).")
 
-st.sidebar.header("Parametros de WOA")
-n_ballenas = st.sidebar.number_input("Numero de ballenas", 2, 1000,
-                                     PARAMS_DEFAULT["n_ballenas"])
-max_iter = st.sidebar.number_input("Iteraciones", 1, 5000,
-                                   PARAMS_DEFAULT["max_iter"])
-a_inicial = st.sidebar.number_input("a inicial (baja a 0)", 0.1, 10.0,
-                                    PARAMS_DEFAULT["a_inicial"], step=0.5)
-b = st.sidebar.number_input("b (forma de la espiral)", 0.0, 10.0,
-                            PARAMS_DEFAULT["b"], step=0.5)
-p_umbral = st.sidebar.slider("Umbral p (rodear vs espiral)", 0.0, 1.0,
-                             PARAMS_DEFAULT["p_umbral"], 0.05)
-seed = st.sidebar.number_input("Semilla (reproducibilidad)", 0, 10**6, 0)
+with st.sidebar.expander("Fórmula y zona de búsqueda"):
+    st.code(cfg["formula"], language=None)
+    lb = st.number_input("Desde", value=float(cfg["lb"]), key=f"lb_{nombre}",
+                         help="Límite inferior de la zona donde se permite "
+                              "buscar, en cada variable.")
+    ub = st.number_input("Hasta", value=float(cfg["ub"]), key=f"ub_{nombre}",
+                         help="Límite superior de la zona de búsqueda.")
+
+st.sidebar.header("2. Ajusta el algoritmo")
+n_ballenas = st.sidebar.number_input(
+    "Ballenas", 2, 1000, key="sb_ballenas",
+    help="Cuántas buscan al mismo tiempo. Más ballenas cubren más terreno, "
+         "pero cada vuelta tarda más.")
+max_iter = st.sidebar.number_input(
+    "Vueltas (iteraciones)", 1, 5000, key="sb_vueltas",
+    help="Una vuelta = todas las ballenas se mueven una vez. Ejemplo: 30 "
+         "ballenas y 200 vueltas = 6,000 movimientos en total.")
+a_inicial = st.sidebar.number_input(
+    "Exploración inicial (a)", 0.1, 10.0, step=0.5, key="sb_a",
+    help="Es el “reloj” del algoritmo: empieza en este valor y baja hasta 0. "
+         "Mientras es grande, las ballenas exploran zonas nuevas; cuando es "
+         "chico, se quedan afinando cerca de la mejor. El artículo usa 2.")
+b = st.sidebar.number_input(
+    "Apertura de la espiral (b)", 0.0, 10.0, step=0.5, key="sb_b",
+    help="Qué tan lejos salta una ballena cuando se mueve en espiral "
+         "alrededor de la mejor. El artículo usa 1.")
+p_umbral = st.sidebar.slider(
+    "Umbral rodear/espiral (p)", 0.0, 1.0, step=0.05, key="sb_p",
+    help="En cada movimiento se “echa un volado”. Con 0.5 es mitad y mitad: "
+         "la mitad de las veces la ballena rodea o busca, y la otra mitad "
+         "hace espiral. Con 0.8, el 80% rodea o busca y solo el 20% hace "
+         "espiral.")
+seed = st.sidebar.number_input(
+    "Semilla", 0, 10**6, key="sb_semilla",
+    help="Fija el azar, como barajar las cartas siempre igual. Con la misma "
+         "semilla sale exactamente el mismo resultado; con otra, cambia. Así "
+         "cualquiera puede repetir nuestros experimentos.")
+st.sidebar.button("Volver a los valores por defecto",
+                  on_click=valores_por_defecto)
 
 params = dict(n_ballenas=int(n_ballenas), max_iter=int(max_iter),
               a_inicial=a_inicial, b=b, p_umbral=p_umbral)
 
+st.sidebar.divider()
+st.sidebar.caption("Colores de las ballenas: :blue[azul = rodear], "
+                   ":orange[naranja = buscar], :green[verde = espiral], "
+                   "gris = posición inicial. La X amarilla es la mejor "
+                   "ballena y la estrella roja, el mínimo real.")
+
 if lb >= ub:
-    st.error("El limite inferior debe ser menor que el superior.")
+    st.error("En la zona de búsqueda, “Desde” tiene que ser menor que “Hasta”.")
     st.stop()
 
-st.sidebar.caption("Colores de las ballenas en las animaciones: "
-                   ":blue[azul = rodear], :orange[naranja = buscar], "
-                   ":green[verde = espiral], gris = posicion inicial.")
+st.title("El algoritmo de la ballena (WOA)")
+st.caption("Ballenas virtuales buscando el punto más bajo de 5 funciones "
+           "matemáticas. Proyecto final.")
 
-tab1, tab_pp, tab2, tab3, tab4, tab5 = st.tabs(
-    ["Una ejecucion", "Paso a paso", "Comparar (visual)", "Experimento",
-     "Sesgo al centro", "Como funciona"])
+(tab_inicio, tab1, tab_3d, tab_pp, tab2, tab3, tab4, tab_res,
+ tab_rep) = st.tabs(["Empieza aquí", "Una corrida", "Simulación 3D",
+                     "Paso a paso", "Comparar", "Muchas corridas",
+                     "Sesgo al centro", "Resultados", "Reporte"])
 
 
 # --------------------------- Utilidades cacheadas ---------------------------
@@ -97,14 +209,135 @@ def gif_cacheado(nom, lb, ub, seed, configs):
     return visual.gif_paneles(armar_casos(nom, lb, ub, seed, configs))
 
 
-def mostrar(fig):
-    st.pyplot(fig)
-    plt.close(fig)
+def aviso_2d():
+    if cfg["dim"] is None:
+        st.caption(f"Para poder dibujarla, aquí {nombre} se usa con 2 "
+                   "variables. Con más variables funciona igual, solo que ya "
+                   "no se puede dibujar.")
 
 
-# ----------------------------- Una ejecucion -------------------------------
+# Las pestanas que corren solas (3D, Paso a paso, Comparar, Sesgo) se vuelven
+# a calcular con cada clic; con demasiados movimientos la app se congela.
+LIMITE_MOVIMIENTOS = 200_000           # ballenas x vueltas
+
+
+def es_pesado(*lista_params):
+    """Muestra un aviso y devuelve True si alguna corrida tardaria mucho."""
+    peor = max(p["n_ballenas"] * p["max_iter"] for p in lista_params)
+    if peor <= LIMITE_MOVIMIENTOS:
+        return False
+    st.warning(f"Son demasiados movimientos ({peor:,} = ballenas × vueltas) "
+               "para esta vista: tardaría mucho en prepararse. Baja las "
+               "ballenas o las vueltas en la barra izquierda (máximo "
+               f"{LIMITE_MOVIMIENTOS:,}).")
+    return True
+
+
+# ------------------------------- Empieza aqui -------------------------------
+with tab_inicio:
+    st.markdown("""
+Queremos que la compu encuentre **el punto más bajo** de una función. Imagina
+un terreno lleno de cerros y hoyos: hay que encontrar el hoyo más profundo
+**con los ojos vendados**. En lugar de una persona, mandamos un grupo de
+**ballenas** que buscan al mismo tiempo y se pasan información.
+""")
+    st.markdown("#### ¿Por dónde empiezo?")
+    st.markdown("""
+| Si quieres... | Ve a la pestaña |
+|---|---|
+| Ver el algoritmo funcionando | **Una corrida** |
+| Ver a las ballenas moverse sobre el terreno en 3D | **Simulación 3D** |
+| Entender las fórmulas con números reales | **Paso a paso** |
+| Ver por qué un ajuste cambia el resultado | **Comparar** |
+| Sacar datos confiables (muchas repeticiones) | **Muchas corridas** |
+| Ver el hallazgo más interesante del proyecto | **Sesgo al centro** |
+| Ver y descargar las tablas y gráficas del reporte | **Resultados** |
+| Leer la guía para escribir el reporte | **Reporte** |
+
+Los ajustes de la **barra izquierda** se usan en todas las pestañas. Pasa el
+mouse sobre el ⓘ de cada uno para ver qué hace.
+""")
+
+    st.markdown("#### Palabras que vas a ver")
+    with st.expander("Lo básico: ballena, presa, vuelta, corrida, semilla",
+                     expanded=True):
+        st.markdown("""
+- **Función (el terreno).** Una fórmula que le da una "altura" a cada punto.
+  Ejemplo con Sphere: en el punto (3, 4) vale 3² + 4² = **25**; en (0, 0)
+  vale **0**, que es lo más bajo posible.
+- **Ballena.** Un punto de prueba, por ejemplo (3, 4). Cada ballena es una
+  posible respuesta.
+- **Presa.** La mejor ballena encontrada hasta ahora (la más baja). Todas la
+  usan de referencia.
+- **Vuelta (iteración).** Una ronda en la que **todas** las ballenas se
+  mueven una vez. Con 30 ballenas y 200 vueltas hay 6,000 movimientos.
+- **Corrida.** Correr el algoritmo completo una vez, de la primera vuelta a
+  la última.
+- **Semilla.** El algoritmo usa azar, así que cada corrida sale distinta. La
+  semilla "fija" ese azar, como barajar las cartas siempre igual: misma
+  semilla, mismo resultado. Por eso nuestros experimentos se pueden repetir.
+- **Variables.** Cuántos números tiene cada punto. Con 2 es (x, y) y se puede
+  dibujar como mapa. Con 10 no se puede dibujar, pero funciona igual.
+""")
+    with st.expander("Las 3 maneras de moverse (y explorar vs. afinar)"):
+        st.markdown("""
+En cada vuelta, cada ballena hace **una** de estas tres cosas:
+
+| Color | Movimiento | Qué hace |
+|---|---|---|
+| :blue[**azul**] | **Rodear la presa** | Se acerca a la mejor ballena. *Afina.* |
+| :orange[**naranja**] | **Buscar otra zona** | Sigue a una ballena al azar y puede pasarse de largo. *Explora.* |
+| :green[**verde**] | **Espiral** | Da vueltas alrededor de la mejor, como la red de burbujas de las ballenas reales. *Afina.* |
+
+**Explorar vs. afinar** (en el reporte: *explorar vs. explotar*). Llegas a
+una ciudad nueva y buscas dónde comer. Los primeros días **exploras**:
+caminas por todos lados. Ya que encontraste una buena zona, **afinas**: te
+quedas por ahí probando los lugares cercanos.
+
+El algoritmo hace lo mismo con el **reloj `a`**: empieza en 2 (mucha
+exploración, aparece el naranja) y baja a 0 (casi solo afinar).
+
+**¿Cómo decide cada ballena?** Con dos "volados":
+1. Un número al azar `p`. Si sale menor que el umbral (0.5) → rodear o
+   buscar. Si no → espiral.
+2. Si toca rodear o buscar, se mira `A`, que depende del reloj. Si `A` está
+   entre -1 y 1 → rodear. Si no → buscar. Como el reloj baja, `A` sale cada
+   vez más chico y al final ya casi no hay búsquedas.
+""")
+    with st.expander("Cómo leer los resultados"):
+        st.markdown(COMO_LEER_NUMEROS + COMO_LEER_CAJAS)
+    with st.expander("Las 5 funciones (los terrenos)"):
+        st.markdown("""
+| Función | Apodo | La trampa | Mínimo en |
+|---|---|---|---|
+| Rastrigin | Cartón de huevo | Muchísimos hoyitos que engañan | (0, ..., 0) |
+| Ackley | Llanura con un pozo | Todo plano, sin pistas de hacia dónde ir | (0, 0) |
+| Sphere | Tazón | Ninguna: es la más fácil | (0, ..., 0) |
+| Rosenbrock | Valle del plátano | Valle largo, curvo y casi plano | (1, ..., 1) |
+| Beale | Valles angostos | Valles estrechos y esquinas empinadas | (3, 0.5) |
+
+En todas, el valor más bajo posible es **0**.
+""")
+    with st.expander("Las fórmulas (para el reporte)"):
+        st.markdown(r"""
+| Qué | Fórmula |
+|---|---|
+| El reloj | `a = a_inicial · (1 − vuelta / total_de_vueltas)` |
+| Números al azar | `A = 2·a·r1 − a`  ·  `C = 2·r2`  (r1, r2 entre 0 y 1) |
+| Rodear | `X_nueva = X* − A · \|C·X* − X\|` |
+| Buscar | `X_nueva = X_rand − A · \|C·X_rand − X\|` |
+| Espiral | `X_nueva = \|X* − X\| · e^(b·l) · cos(2πl) + X*` (l entre -1 y 1) |
+
+`X` = la ballena, `X*` = la presa, `X_rand` = una ballena al azar.
+
+*Mirjalili y Lewis (2016), The Whale Optimization Algorithm.*
+""")
+
+# ------------------------------- Una corrida --------------------------------
 with tab1:
-    if st.button("Ejecutar WOA", type="primary"):
+    st.write("Corre el algoritmo **una vez**, de principio a fin, con los "
+             "ajustes de la izquierda.")
+    if st.button("Correr", type="primary"):
         res = woa(cfg["f"], lb, ub, int(dim), seed=int(seed),
                   guardar_posiciones=True, **params)
         st.session_state["res"] = (res, nombre, int(dim), lb, ub)
@@ -113,42 +346,102 @@ with tab1:
         res, nom_r, dim_r, lb_r, ub_r = st.session_state["res"]
         cfg_r = FUNCIONES[nom_r]
         x_opt = cfg_r["optimo_x"](dim_r)
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Mejor fitness", f"{res['mejor_f']:.3e}")
-        c2.metric("Error vs optimo", f"{abs(res['mejor_f'] - cfg_r['optimo_f']):.3e}")
-        c3.metric("Distancia a x* real",
-                  f"{np.linalg.norm(res['mejor_x'] - x_opt):.3e}")
-        st.write(f"Funcion: {nom_r} | dim = {dim_r} | mejor x encontrado:")
-        st.code(np.array2string(res["mejor_x"], precision=6), language=None)
+        c1, c2 = st.columns(2)
+        c1.metric("Mejor valor encontrado", f"{res['mejor_f']:.2e}",
+                  help="Lo más bajo que encontraron. Lo ideal es 0. "
+                       "1.5e-15 = 0.0000000000000015, o sea, casi cero.")
+        c2.metric("Distancia al punto ideal",
+                  f"{np.linalg.norm(res['mejor_x'] - x_opt):.2e}",
+                  help="Qué tan lejos quedó el mejor punto encontrado del "
+                       "verdadero mínimo de la función.")
+        st.caption(f"{nom_r} con {dim_r} variables. Mejor punto encontrado: "
+                   f"`{np.array2string(res['mejor_x'], precision=4)}`")
 
         col_a, col_b = st.columns(2)
         with col_a:
             fig, ax = plt.subplots(figsize=(5, 4.5))
             ax.semilogy(res["curva"] + 1e-300)
-            ax.set_xlabel("Iteracion"); ax.set_ylabel("Mejor fitness (log)")
-            ax.set_title("Convergencia"); ax.grid(alpha=.3)
+            ax.set_xlabel("Vuelta"); ax.set_ylabel("Mejor valor (escala log)")
+            ax.set_title("Cómo fue mejorando"); ax.grid(alpha=.3)
             mostrar(fig)
+            st.caption("La línea solo baja o se queda igual: la mejor "
+                       "ballena nunca empeora.")
         with col_b:
             if dim_r == 2:
-                it = st.slider("Iteracion a visualizar", 0,
+                it = st.slider("Vuelta a mostrar", 0,
                                len(res["posiciones"]) - 1, 0)
                 caso = dict(f=cfg_r["f"], lb=lb_r, ub=ub_r, res=res,
-                            optimo=x_opt, titulo="Posicion de las ballenas")
+                            optimo=x_opt, titulo="Dónde están las ballenas")
                 mostrar(visual.figura_paneles(
                     [caso], it / max(1, len(res["posiciones"]) - 1)))
+                st.caption("Mueve la barra: al principio están dispersas "
+                           "(exploran) y al final juntas (afinan).")
             else:
                 fig, ax = plt.subplots(figsize=(5, 4.5))
                 idx = np.arange(dim_r)
                 ax.bar(idx - 0.2, res["mejor_x"], 0.4, label="encontrado")
-                ax.bar(idx + 0.2, x_opt, 0.4, label="optimo real")
-                ax.set_xlabel("Variable i"); ax.legend()
-                ax.set_title("Mejor solucion vs optimo")
+                ax.bar(idx + 0.2, x_opt, 0.4, label="ideal")
+                ax.set_xlabel("Variable"); ax.legend()
+                ax.set_title("Punto encontrado vs. punto ideal")
                 mostrar(fig)
-        st.subheader("Que regla uso cada ballena en cada momento")
+                st.caption("Con más de 2 variables no se puede dibujar el "
+                           "mapa. Aquí se compara cada variable con la ideal.")
+        st.markdown("#### ¿Qué hizo cada ballena en cada momento?")
         mostrar(visual.figura_reglas(
-            [dict(res=res, titulo=f"{nom_r}, dim {dim_r}")], [a_inicial]))
+            [dict(res=res, titulo=f"{nom_r}, {dim_r} variables")],
+            [a_inicial]))
+        st.caption("Cada franja muestra el porcentaje de ballenas que usaron "
+                   "ese movimiento. "
+                   "La línea punteada es el reloj `a`: cuando baja de 1, el "
+                   "naranja (buscar) desaparece.")
     else:
-        st.info("Ajusta los parametros a la izquierda y pulsa Ejecutar WOA.")
+        st.info("Ajusta lo que quieras a la izquierda y presiona **Correr**.")
+
+# ------------------------------- Simulacion 3D ------------------------------
+QUE_VER_3D = {
+    "Rastrigin": "Es un **cartón de huevo**: lleno de hoyitos. Fíjate cómo "
+                 "algunas ballenas se quedan un rato atoradas en hoyitos "
+                 "mientras otras encuentran el hoyo del centro.",
+    "Ackley": "Es una **llanura con un pozo** en el centro. En la parte plana "
+              "no hay pistas de hacia dónde ir; mira cómo se van juntando "
+              "hasta caer al pozo.",
+    "Sphere": "Es un **tazón** sin trampas: todas las ballenas resbalan al "
+              "fondo. Acércate con la rueda del mouse: al final quedan todas "
+              "en un puntito.",
+    "Rosenbrock": "Es el **valle del plátano**: llegan rápido al valle curvo, "
+                  "pero avanzar por el fondo hasta el mínimo (1, 1) es "
+                  "lentísimo porque casi no baja.",
+    "Beale": "Son **valles angostos** con esquinas muy empinadas. El mínimo "
+             "no está en el centro sino en (3, 0.5), cerca de una orilla.",
+}
+VELOCIDAD_3D = {"Lenta": 300, "Normal": 150, "Rápida": 60}
+
+with tab_3d:
+    st.write("Las ballenas moviéndose sobre el terreno, en 3D. **Gíralo** "
+             "arrastrando con el mouse, **acércate** con la rueda y dale "
+             "**▶ Reproducir**. Para ver otra función, cámbiala en la barra "
+             "izquierda.")
+    aviso_2d()
+    st.info(f"**{nombre}:** " + QUE_VER_3D[nombre])
+    c1, c2 = st.columns(2)
+    log_3d = c1.toggle(
+        "Aplanar los picos (escala log)", value=True,
+        help="Algunas funciones tienen picos altísimos (Rosenbrock llega a "
+             "millones) que aplastan todo lo demás. Así se ven los detalles "
+             "del fondo. Las ballenas siguen en el mismo lugar; solo cambia "
+             "la altura del dibujo.")
+    vel_3d = c2.select_slider("Velocidad", list(VELOCIDAD_3D), value="Normal")
+    if not es_pesado(params):
+        res_3d = corrida(nombre, 2, lb, ub, int(seed), 0.0, **params)
+        with st.spinner("Preparando la simulación..."):
+            fig_3d = visual3d.figura_3d(cfg["f"], lb, ub, res_3d,
+                                        cfg["optimo_x"](2), log=log_3d,
+                                        ms=VELOCIDAD_3D[vel_3d])
+        st.plotly_chart(fig_3d, theme=None, key="fig_3d")
+        st.caption("Colores: :blue[azul = rodear], :orange[naranja = buscar], "
+                   ":green[verde = espiral], gris = inicio. La X amarilla es "
+                   "la mejor ballena y el rombo rojo, el mínimo real. Pasa el "
+                   "mouse sobre una ballena para ver su valor.")
 
 # ------------------------------- Paso a paso --------------------------------
 @st.cache_data(show_spinner=False)
@@ -158,22 +451,15 @@ def corrida_detallada(nom, lb, ub, seed, p_t):
 
 
 with tab_pp:
-    st.write("Congela **una ballena en una iteracion** y muestra con los "
-             "numeros reales como decidio su movimiento. Usa la funcion, los "
-             "parametros y la semilla de la barra lateral.")
-    if cfg["dim"] is None:
-        st.caption(f"{nombre} es de n dimensiones; aqui se usa en 2D para "
-                   "poder dibujarla. Las formulas son iguales en n "
-                   "dimensiones (se aplican a cada coordenada).")
-    if params["n_ballenas"] * params["max_iter"] > 200_000:
-        st.warning("Demasiadas ballenas x iteraciones para el paso a paso. "
-                   "Reduce alguno de los dos en la barra lateral.")
-    else:
+    st.write("Congela **una ballena en una vuelta** y te muestra, con los "
+             "números reales, cómo decidió moverse.")
+    aviso_2d()
+    if not es_pesado(params):
         p_t = tuple(sorted(params.items()))
         det = corrida_detallada(nombre, lb, ub, int(seed), p_t)
         iters = det["iteraciones"]
         T, N = len(iters), params["n_ballenas"]
-        # Si cambian los parametros, reiniciar la posicion de la lupa
+        # Si cambian los ajustes, regresar al inicio
         if st.session_state.get("pp_clave") != (nombre, lb, ub, seed, p_t):
             st.session_state.update(pp_clave=(nombre, lb, ub, seed, p_t),
                                     pp_t=0, pp_i=0)
@@ -191,78 +477,77 @@ with tab_pp:
                 st.session_state.pp_t, st.session_state.pp_i = r
 
         c1, c2 = st.columns([3, 1])
-        c1.slider("Iteracion t", 0, T - 1, key="pp_t")
+        if T > 1:
+            c1.slider("Vuelta", 0, T - 1, key="pp_t")
+        else:            # una sola vuelta: un slider de 0 a 0 truena
+            c1.markdown("**Vuelta:** 0 (solo hay una)")
         c2.number_input("Ballena #", 0, N - 1, key="pp_i")
         b1, b2, b3, b4, b5 = st.columns([1, 1, 1, 1.4, 1.4])
-        b1.button("< Ballena", on_click=mover, kwargs=dict(di=-1))
-        b2.button("Ballena >", on_click=mover, kwargs=dict(di=1))
-        b3.button("Iteracion >", on_click=mover, kwargs=dict(dt=1))
-        b4.selectbox("Buscar ejemplo de", [0, 1, 2], key="pp_regla",
-                     format_func=lambda k: paso_a_paso.NOMBRES[k].capitalize(),
+        b1.button("◀ Ballena", on_click=mover, kwargs=dict(di=-1))
+        b2.button("Ballena ▶", on_click=mover, kwargs=dict(di=1))
+        b3.button("Vuelta ▶", on_click=mover, kwargs=dict(dt=1))
+        b4.selectbox("Buscar un ejemplo de", [0, 1, 2], key="pp_regla",
+                     format_func=lambda k: paso_a_paso.NOMBRES[k],
                      label_visibility="collapsed")
-        b5.button("Siguiente ejemplo", on_click=ir_a_regla)
+        b5.button("Ir al siguiente ejemplo", on_click=ir_a_regla)
 
         it = iters[st.session_state.pp_t]
         d = it["ballenas"][st.session_state.pp_i]
         cuenta = np.bincount([x["regla"] for x in it["ballenas"]],
                              minlength=3)
-        st.caption(f"En esta iteracion: a = {it['a']:.3f} | rodear "
-                   f"{cuenta[0]}, buscar {cuenta[1]}, espiral {cuenta[2]} | "
-                   f"presa: f = {it['presa_f']:.3e}"
-                   + (f" -> mejoro a {it['nueva_presa_f']:.3e} (ballena "
-                      f"#{it['i_mejor']})" if it["mejoro"] else
-                      " (no mejoro en esta iteracion)"))
+        st.caption(f"En esta vuelta: reloj a = {it['a']:.2f} · rodearon "
+                   f"{cuenta[0]}, buscaron {cuenta[1]}, en espiral {cuenta[2]} · "
+                   + (f"la mejor bajó de {it['presa_f']:.2e} a "
+                      f"{it['nueva_presa_f']:.2e} (ballena #{it['i_mejor']})"
+                      if it["mejoro"] else
+                      f"la mejor sigue en {it['presa_f']:.2e}"))
 
         col_a, col_b = st.columns([1.1, 1])
         with col_a:
             zoom = st.toggle("Acercar al movimiento", value=True)
             mostrar(paso_a_paso.figura_movimiento(cfg["f"], lb, ub, it, d,
                                                   b, zoom))
-            st.caption("La **linea punteada** son todos los lugares a los "
-                       "que pudo llegar esta ballena con los mismos C y D si "
-                       "solo cambiara A (o l en la espiral). Muestra que el "
-                       "movimiento ocurre sobre una linea, no en cualquier "
-                       "direccion.")
+            st.caption("La **línea punteada** marca todos los lugares a los "
+                       "que pudo llegar esta ballena si solo cambiara el "
+                       "número al azar `A` (o `l` en la espiral).")
         with col_b:
             st.markdown(paso_a_paso.explicacion(
                 it, d, params["max_iter"], a_inicial, b, p_umbral))
         mostrar(paso_a_paso.figura_decisiones(it, d, b, p_umbral, a_inicial))
+        st.caption("Tip para estudiar: haz las cuentas a mano con estos "
+                   "números y compara con la pantalla.")
 
-# ---------------------------- Comparar (visual) -----------------------------
+# --------------------------------- Comparar ---------------------------------
 COMPARAR_DEFAULTS = {"a_inicial": (1.0, 3.0), "n_ballenas": (10, 100),
                      "max_iter": (30, 300), "b": (0.5, 2.0),
                      "p_umbral": (0.2, 0.8)}
 QUE_OBSERVAR = {
-    "a_inicial": "Con `a` mas grande, |A| >= 1 dura mas tiempo: la franja "
-                 "**naranja (buscar)** se extiende y las ballenas siguen "
-                 "dispersas por mas iteraciones. Mas exploracion, pero menos "
-                 "tiempo para refinar. Fijate cuando la linea punteada a(t) "
-                 "cruza a = 1: a partir de ahi ya no hay naranja.",
-    "n_ballenas": "Con mas ballenas el dominio queda cubierto desde el "
-                  "inicio, por eso es mas facil que alguna caiga cerca del "
-                  "optimo. El costo: cada iteracion evalua f mas veces.",
-    "max_iter": "La forma de a(t) es la misma, pero estirada: con mas "
-                "iteraciones hay mas pasos de exploracion *y* de "
-                "refinamiento. Con muy pocas, las ballenas no alcanzan a "
-                "juntarse sobre el optimo.",
-    "b": "b cambia que tan abierta es la espiral (puntos **verdes**). Con b "
-         "grande, los saltos en espiral son mas largos alrededor de la presa.",
-    "p_umbral": "p_umbral decide la proporcion entre **verde (espiral)** y "
-                "azul/naranja. Con p_umbral bajo casi todo es espiral; con "
-                "p_umbral alto casi nunca hay espiral y la exploracion "
-                "(naranja) tiene mas peso al inicio.",
+    "a_inicial": "Con `a` más grande, el reloj tarda más en bajar de 1, así "
+                 "que el **naranja (buscar)** dura más y las ballenas siguen "
+                 "dispersas más tiempo. Exploran más, pero les queda menos "
+                 "tiempo para afinar. Con `a = 1` nunca hay naranja.",
+    "n_ballenas": "Con más ballenas el terreno queda cubierto desde el "
+                  "principio, y es más fácil que alguna caiga cerca del "
+                  "mínimo. Lo malo: cada vuelta tarda más.",
+    "max_iter": "El reloj baja igual, pero más despacio: con más vueltas hay "
+                "más tiempo para explorar **y** para afinar. Con muy pocas, "
+                "las ballenas no alcanzan a juntarse en el mínimo.",
+    "b": "`b` cambia qué tan lejos saltan las ballenas en la espiral "
+         "(**verde**). Con `b` grande, los saltos alrededor de la mejor son "
+         "más largos.",
+    "p_umbral": "El umbral reparte los movimientos: con 0.2 casi todo es "
+                "**verde (espiral)**; con 0.8 casi todo es azul/naranja, así "
+                "que al principio hay más **exploración (naranja)**.",
 }
 
 with tab2:
-    st.write("Corre WOA **dos veces con la misma semilla**, cambiando solo UN "
-             "parametro, y muestra lado a lado como se mueven las ballenas. "
-             "Todo lo demas toma los valores de la barra lateral.")
-    if cfg["dim"] is None:
-        st.caption(f"{nombre} es de n dimensiones; para poder dibujarla, aqui "
-                   "se resuelve en 2 dimensiones.")
+    st.write("Corre el algoritmo **dos veces con la misma suerte** (misma "
+             "semilla), cambiando **solo un ajuste**, y las pone lado a lado.")
+    aviso_2d()
     c1, c2, c3 = st.columns(3)
-    par_c = c1.selectbox("Parametro a comparar", list(COMPARAR_DEFAULTS),
-                         key="par_c")
+    par_c = c1.selectbox("¿Qué ajuste quieres comparar?",
+                         list(COMPARAR_DEFAULTS), key="par_c",
+                         format_func=NOMBRE_PARAM.get)
     vA0, vB0 = COMPARAR_DEFAULTS[par_c]
     es_entero = par_c in ("n_ballenas", "max_iter")
     paso = 1 if es_entero else 0.1
@@ -271,55 +556,65 @@ with tab2:
 
     def config(v):
         p = {**params, par_c: int(v) if es_entero else float(v)}
-        return (tuple(sorted(p.items())), 0.0, f"{par_c} = {v}")
+        return (tuple(sorted(p.items())), 0.0, f"{CORTO_PARAM[par_c]} = {v:g}")
 
     configs = (config(vA), config(vB))
-    casos = armar_casos(nombre, lb, ub, int(seed), configs)
+    st.info("**Qué observar:** " + QUE_OBSERVAR[par_c])
+    modo = st.radio("Vista", ["Animación", "Pausar en un momento"],
+                    horizontal=True, key="modo_c",
+                    label_visibility="collapsed")
 
-    st.info(QUE_OBSERVAR[par_c])
-    modo = st.radio("Vista", ["Animacion", "Pausar en un momento"],
-                    horizontal=True, key="modo_c")
-    if modo == "Animacion":
-        with st.spinner("Generando animacion..."):
-            st.image(gif_cacheado(nombre, lb, ub, int(seed), configs),
-                     width="stretch")
-    else:
-        frac = st.slider("% del recorrido", 0, 100, 10, key="frac_c") / 100
-        mostrar(visual.figura_paneles(casos, frac))
+    if not es_pesado(*(dict(c[0]) for c in configs)):
+        casos = armar_casos(nombre, lb, ub, int(seed), configs)
+        if modo == "Animación":
+            with st.spinner("Preparando la animación (la primera vez tarda "
+                            "unos segundos)..."):
+                st.image(gif_cacheado(nombre, lb, ub, int(seed), configs),
+                         width="stretch")
+        else:
+            frac = st.slider("¿En qué momento? (% del recorrido)", 0, 100, 10,
+                             key="frac_c") / 100
+            mostrar(visual.figura_paneles(casos, frac))
 
-    st.subheader("Que regla usan las ballenas a lo largo del tiempo")
-    mostrar(visual.figura_reglas(casos, [dict(c[0])["a_inicial"]
-                                         for c in configs]))
-    st.subheader("Exploracion vs explotacion y convergencia")
-    mostrar(visual.figura_diversidad_convergencia(casos))
-    st.caption("Esto es UNA corrida en 2D, sirve para ver el mecanismo. Para "
-               "conclusiones con estadistica usa la pestana Experimento "
-               "(muchas corridas).")
+        st.markdown("#### ¿Qué movimiento usan con el tiempo?")
+        mostrar(visual.figura_reglas(casos, [dict(c[0])["a_inicial"]
+                                             for c in configs]))
+        st.markdown("#### ¿Qué tan separadas están y cómo van mejorando?")
+        mostrar(visual.figura_diversidad_convergencia(casos))
+        st.caption("Ojo: esto es **una sola corrida**; sirve para ver la "
+                   "idea. Para sacar conclusiones usa **Muchas corridas** o la "
+                   "pestaña **Resultados**.")
 
-# ------------------------------- Experimento --------------------------------
+# ------------------------------ Muchas corridas -----------------------------
 with tab3:
-    st.write("Varia UN parametro, deja los demas como en la barra lateral, y "
-             "repite cada valor varias veces (WOA es aleatorio).")
+    st.write("Como el algoritmo usa azar, una sola corrida puede salir bien o "
+             "mal por suerte. Aquí cada valor se repite **muchas veces** y se "
+             "resume. Los demás ajustes se quedan como en la barra izquierda.")
     c1, c2, c3 = st.columns(3)
-    par = c1.selectbox("Parametro a variar",
-                       ["n_ballenas", "max_iter", "a_inicial", "b",
-                        "p_umbral"] + (["dim"] if cfg["dim"] is None else []))
+    opciones_par = ["n_ballenas", "max_iter", "a_inicial", "b", "p_umbral"] \
+        + (["dim"] if cfg["dim"] is None else [])
+    par = c1.selectbox("¿Qué ajuste quieres cambiar?", opciones_par,
+                       format_func=NOMBRE_PARAM.get)
     sugeridos = {"n_ballenas": "10, 30, 50, 100", "max_iter": "50, 100, 200, 500",
                  "a_inicial": "1, 2, 3", "b": "0.5, 1, 2",
                  "p_umbral": "0.2, 0.5, 0.8", "dim": "2, 5, 10, 30"}
-    texto = c2.text_input("Valores (separados por coma)", sugeridos[par],
-                          key=f"vals_{par}")
-    n_corridas = c3.number_input("Corridas por valor", 2, 200, 30)
+    texto = c2.text_input("Valores a probar (separados por comas)",
+                          sugeridos[par], key=f"vals_{par}")
+    n_corridas = c3.number_input(
+        "Repeticiones por valor", 2, 200, 30,
+        help="Cuántas corridas por cada valor. Usamos 30 en el reporte: "
+             "suficientes para que la suerte se compense.")
 
-    if st.button("Correr experimento"):
+    if st.button("Correr", key="btn_exp", type="primary"):
         try:
             valores = [float(v) for v in texto.split(",") if v.strip()]
         except ValueError:
-            st.error("Valores no validos."); st.stop()
+            st.error("Revisa los valores: deben ser números separados por "
+                     "comas, por ejemplo 10, 30, 50."); st.stop()
         if par in ("n_ballenas", "max_iter", "dim"):
             valores = [int(v) for v in valores]
         fijos = {k: v for k, v in params.items() if k != par}
-        with st.spinner("Corriendo..."):
+        with st.spinner("Corriendo... (puede tardar un poco)"):
             df, fin, cur = barrido(nombre, par, valores,
                                    n_corridas=int(n_corridas),
                                    dim=int(dim), lb=lb, ub=ub, **fijos)
@@ -327,68 +622,88 @@ with tab3:
 
     if "exp" in st.session_state:
         df, fin, cur, par_r, nom_r = st.session_state["exp"]
-        st.subheader(f"{nom_r}: efecto de {par_r}")
-        st.dataframe(df.style.format({c: "{:.3e}" for c in df.columns[1:-1]}))
+        st.markdown(f"#### {nom_r}: efecto de {NOMBRE_PARAM[par_r].lower()}")
+        st.dataframe(tabla_bonita(df), hide_index=True)
         vals = list(fin)
         col_a, col_b = st.columns(2)
         with col_a:
             fig, ax = plt.subplots(figsize=(5.5, 4))
             ax.boxplot([fin[v] for v in vals], tick_labels=[str(v) for v in vals])
             ax.set_yscale("symlog", linthresh=1e-12)
-            ax.set_xlabel(par_r); ax.set_ylabel("Mejor fitness final")
-            ax.set_title("Distribucion de resultados finales")
+            ax.set_xlabel(NOMBRE_PARAM[par_r])
+            ax.set_ylabel("Mejor valor al final")
+            ax.set_title("Resultado de cada corrida")
             mostrar(fig)
         with col_b:
             fig, ax = plt.subplots(figsize=(5.5, 4))
             for v in vals:
-                ax.semilogy(np.mean(cur[v], axis=0) + 1e-300, label=f"{par_r}={v}")
-            ax.set_xlabel("Iteracion"); ax.set_ylabel("Fitness medio (log)")
-            ax.legend(fontsize=8); ax.set_title("Convergencia media")
+                ax.semilogy(np.mean(cur[v], axis=0) + 1e-300,
+                            label=f"{CORTO_PARAM[par_r]} = {v}")
+            ax.set_xlabel("Vuelta"); ax.set_ylabel("Mejor valor (promedio)")
+            ax.legend(fontsize=8); ax.set_title("Cómo fue mejorando")
             mostrar(fig)
+        with st.expander("¿Cómo leo esto?"):
+            st.markdown(COMO_LEER_NUMEROS + COMO_LEER_CAJAS)
         buf = io.StringIO(); df.to_csv(buf, index=False)
         st.download_button("Descargar tabla (CSV)", buf.getvalue(),
                            f"{nom_r}_{par_r}.csv", "text/csv")
 
 # ------------------------------ Sesgo al centro -----------------------------
 with tab4:
-    st.write("Prueba: tomar **la misma funcion** y solo moverla de lugar, "
-             "f(x - s). La dificultad es identica; lo unico que cambia es "
-             "donde esta el optimo. Si WOA fuera imparcial, el resultado "
-             "deberia ser parecido.")
+    st.write("**¿El algoritmo hace trampa?** Tomamos la misma función y solo "
+             "la **movemos de lugar**. Es igual de difícil; lo único que "
+             "cambia es dónde está el mínimo. Si el algoritmo no tuviera "
+             "preferencias, debería salir parecido.")
+    aviso_2d()
     opt0 = cfg["optimo_x"](2)
     s_max = float(min(ub - opt0.max(), opt0.min() - lb))
     if s_max <= 0.01:
-        st.warning("Con estos limites no cabe un desplazamiento del optimo.")
+        st.warning("Con esta zona de búsqueda no hay espacio para mover el "
+                   "mínimo.")
         s_max = 0.01
-    s = st.slider("Desplazamiento s (en cada eje)", 0.0, round(s_max, 2),
-                  round(min(0.3 * ub, s_max), 2), key=f"s_{nombre}")
+    s = st.slider("¿Cuánto movemos el mínimo? (en cada eje)", 0.0,
+                  round(s_max, 2), round(min(0.3 * ub, s_max), 2),
+                  key=f"s_{nombre}")
 
     configs_s = ((tuple(sorted(params.items())), 0.0, "Original"),
-                 (tuple(sorted(params.items())), s,
-                  f"Desplazada s = {s:g}"))
-    casos_s = armar_casos(nombre, lb, ub, int(seed), configs_s)
-    st.info("Fijate a donde se juntan las ballenas en la funcion desplazada "
-            "comparado con la estrella roja (el optimo real). La causa "
-            "principal: en las reglas de rodear y buscar se usa `C * X*`, "
-            "con C aleatorio en [0, 2], y multiplicar por un numero tiende "
-            "a jalar los puntos hacia el 0.")
-    modo_s = st.radio("Vista", ["Animacion", "Pausar en un momento"],
-                      horizontal=True, key="modo_s")
-    if modo_s == "Animacion":
-        with st.spinner("Generando animacion..."):
-            st.image(gif_cacheado(nombre, lb, ub, int(seed), configs_s),
-                     width="stretch")
-    else:
-        frac = st.slider("% del recorrido", 0, 100, 30, key="frac_s") / 100
-        mostrar(visual.figura_paneles(casos_s, frac))
+                 (tuple(sorted(params.items())), s, f"Movida {s:g}"))
+    st.info("**Qué observar:** en la función movida, ¿las ballenas llegan a "
+            "la estrella roja (el mínimo real) o se quedan a medio camino "
+            "hacia el centro?")
+    modo_s = st.radio("Vista", ["Animación", "Pausar en un momento"],
+                      horizontal=True, key="modo_s",
+                      label_visibility="collapsed")
+    if not es_pesado(params):
+        casos_s = armar_casos(nombre, lb, ub, int(seed), configs_s)
+        if modo_s == "Animación":
+            with st.spinner("Preparando la animación..."):
+                st.image(gif_cacheado(nombre, lb, ub, int(seed), configs_s),
+                         width="stretch")
+        else:
+            frac = st.slider("¿En qué momento? (% del recorrido)", 0, 100,
+                             30, key="frac_s") / 100
+            mostrar(visual.figura_paneles(casos_s, frac))
+    with st.expander("¿Por qué pasa esto?"):
+        st.markdown("""
+En las fórmulas de rodear y buscar, la posición de la mejor ballena se
+**multiplica por un número al azar** (`C`, entre 0 y 2). Multiplicar un
+punto lo acerca o lo aleja **del 0**. Por ejemplo, 30 × 0.5 = 15: el punto se
+fue hacia el centro. Así, el algoritmo tiene una tendencia escondida a jalar
+a las ballenas hacia el centro.
 
-    st.subheader(f"Con estadistica: {int(dim)} dimensiones, varias corridas")
-    n_s = st.number_input("Corridas", 2, 100, 20, key="n_s")
-    if st.button("Correr comparacion"):
+Si el mínimo está en el centro (Rastrigin, Ackley, Sphere), eso ayuda
+muchísimo. Si no (Rosenbrock, Beale), estorba. Esto explica por qué le fue
+"perfecto" justo en esas 3 funciones.
+""")
+
+    st.markdown(f"#### Ahora con muchas corridas ({int(dim)} variables)")
+    c1, c2 = st.columns([1, 3])
+    n_s = c1.number_input("Repeticiones", 2, 100, 20, key="n_s")
+    if st.button("Correr", key="btn_sesgo", type="primary"):
         d = int(dim)
         filas, datos = [], {}
         with st.spinner("Corriendo..."):
-            for etiqueta, sv in (("Original", 0.0), (f"Desplazada s={s:g}", s)):
+            for etiqueta, sv in (("Original", 0.0), (f"Movida {s:g}", s)):
                 f_s = funcion_desplazada(nombre, sv)
                 opt = cfg["optimo_x"](d) + sv
                 fin, dist_opt, dist_0 = [], [], []
@@ -400,40 +715,149 @@ with tab4:
                 datos[etiqueta] = np.array(fin)
                 filas.append(dict(caso=etiqueta, mediana=np.median(fin),
                                   media=np.mean(fin), peor=np.max(fin),
-                                  dist_media_al_optimo=np.mean(dist_opt),
-                                  dist_media_al_origen=np.mean(dist_0)))
+                                  dist_optimo=np.mean(dist_opt),
+                                  dist_centro=np.mean(dist_0)))
         st.session_state["sesgo"] = (pd.DataFrame(filas), datos, nombre, d)
 
     if "sesgo" in st.session_state:
         df_s, datos, nom_s, d_s = st.session_state["sesgo"]
-        st.write(f"{nom_s}, dimension {d_s}")
-        st.dataframe(df_s.style.format({c: "{:.3e}" for c in df_s.columns[1:]}))
+        st.caption(f"{nom_s} con {d_s} variables")
+        st.dataframe(tabla_bonita(df_s), hide_index=True)
         fig, ax = plt.subplots(figsize=(6, 3.8))
         ax.boxplot(list(datos.values()), tick_labels=list(datos))
         ax.set_yscale("symlog", linthresh=1e-12)
-        ax.set_ylabel("Mejor fitness final")
-        ax.set_title("Misma funcion, distinto lugar del optimo")
+        ax.set_ylabel("Mejor valor al final")
+        ax.set_title("Misma función, mínimo en otro lugar")
         mostrar(fig)
 
-# ------------------------------ Como funciona -------------------------------
-with tab5:
-    st.markdown(f"""
-**Idea.** Cada ballena es una solucion candidata. La mejor solucion encontrada
-hasta ahora es la *presa* X*. En cada iteracion cada ballena se mueve segun:
+# -------------------------------- Resultados --------------------------------
+PARAMS_INFO = {  # archivo -> (que es, valores probados, valor por defecto)
+    "n_ballenas": ("Cuántas ballenas buscan", "10, 30, 50, 100", "30"),
+    "max_iter": ("Cuántas vueltas da el algoritmo", "50, 100, 200, 500",
+                 "200"),
+    "a_inicial": ("Cuánto exploran al principio (reloj a)", "1, 2, 3", "2"),
+    "b": ("Qué tan abierta es la espiral", "0.5, 1, 2", "1"),
+    "p_umbral": ("Qué tan seguido rodean/buscan vs. hacen espiral",
+                 "0.2, 0.5, 0.8", "0.5"),
+}
 
-- `a` baja linealmente de {a_inicial} a 0 con las iteraciones.
-- `A = 2a r1 - a` (en [-a, a]) y `C = 2 r2` (en [0, 2]), con r1, r2 aleatorios en [0, 1].
-- `p` aleatorio en [0, 1] y `l` aleatorio en [-1, 1].
 
-| Condicion | Movimiento | Tipo | Color |
-|---|---|---|---|
-| p < {p_umbral} y abs(A) < 1 | `X = X* - A * abs(C X* - X)` (rodear la presa) | Explotacion | azul |
-| p < {p_umbral} y abs(A) >= 1 | `X = Xrand - A * abs(C Xrand - X)` (ir hacia otra ballena al azar) | Exploracion | naranja |
-| p >= {p_umbral} | `X = abs(X* - X) * exp(b l) * cos(2 pi l) + X*` (espiral, b = {b}) | Explotacion | verde |
+def etiqueta_carpeta(nombre_carpeta):
+    if nombre_carpeta == "0_base":
+        return "Las 5 funciones juntas (valores por defecto)"
+    if nombre_carpeta == "6_sesgo_centro":
+        return "Sesgo al centro (mínimo movido)"
+    num, _, resto = nombre_carpeta.partition("_")
+    return f"{num}. {resto}"
 
-Al inicio `a` es grande, abs(A) >= 1 es frecuente y domina la exploracion.
-Al final `a` tiende a 0, abs(A) < 1 y domina la explotacion.
 
-Referencia: Mirjalili y Lewis (2016), *The Whale Optimization Algorithm*,
-Advances in Engineering Software 95, 51-67.
-""")
+def mostrar_archivo(ruta, clave):
+    """Muestra un .csv (tabla) o .png (imagen) con su boton de descarga."""
+    nombre_arch = os.path.basename(ruta)
+    with open(ruta, "rb") as fh:
+        datos = fh.read()
+    if ruta.endswith(".csv"):
+        st.dataframe(tabla_bonita(pd.read_csv(ruta)), hide_index=True)
+        st.download_button(f"Descargar tabla ({nombre_arch})", datos,
+                           nombre_arch, "text/csv", key=f"dl_{clave}")
+    elif ruta.endswith(".png"):
+        st.image(datos, width="stretch")
+        st.download_button(f"Descargar gráfica ({nombre_arch})", datos,
+                           nombre_arch, "image/png", key=f"dl_{clave}")
+
+
+@st.cache_data(show_spinner=False)
+def zip_resultados(firma):
+    """ZIP de toda la carpeta resultados. 'firma' cambia si cambia un archivo."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for ruta, _ in firma:
+            z.write(os.path.join(CARPETA_RES, ruta),
+                    os.path.join("resultados", ruta))
+    return buf.getvalue()
+
+
+with tab_res:
+    st.write("Las tablas y gráficas que usamos en el reporte. Cada "
+             "configuración se corrió **30 veces**.")
+    if not os.path.isdir(CARPETA_RES):
+        st.warning("No existe la carpeta resultados/. Se crea con "
+                   "`python experimentos.py`.")
+    else:
+        firma = tuple(sorted(
+            (os.path.relpath(os.path.join(r, a), CARPETA_RES),
+             os.path.getmtime(os.path.join(r, a)))
+            for r, _, archs in os.walk(CARPETA_RES) for a in archs))
+        carpetas = sorted(d for d in os.listdir(CARPETA_RES)
+                          if os.path.isdir(os.path.join(CARPETA_RES, d)))
+        c1, c2 = st.columns([3, 1])
+        carpeta = c1.selectbox("¿Qué quieres ver?", carpetas,
+                               format_func=etiqueta_carpeta, key="res_carpeta")
+        c2.download_button("Descargar todo (.zip)", zip_resultados(firma),
+                           "resultados.zip", "application/zip")
+        ruta_c = os.path.join(CARPETA_RES, carpeta)
+        archivos = sorted(os.listdir(ruta_c))
+        params_aqui = [p for p in PARAMS_INFO if f"{p}.csv" in archivos]
+
+        if params_aqui:                      # carpeta de una funcion
+            opciones = params_aqui + ["__todas__"]
+            elegido = st.radio(
+                "Ajuste", opciones, horizontal=True, key="res_param",
+                format_func=lambda p: "Todas las gráficas"
+                if p == "__todas__" else NOMBRE_PARAM[p])
+            if elegido == "__todas__":
+                cols = st.columns(2)
+                for k, p in enumerate(params_aqui):
+                    with cols[k % 2]:
+                        st.markdown(f"**{NOMBRE_PARAM[p]}**")
+                        st.image(os.path.join(ruta_c, f"{p}.png"),
+                                 width="stretch")
+            else:
+                que_es, vals_p, def_p = PARAMS_INFO[elegido]
+                st.info(f"**{que_es}.** Se probó con {vals_p} (normalmente "
+                        f"{def_p}). Todo lo demás se quedó igual.")
+                mostrar_archivo(os.path.join(ruta_c, f"{elegido}.png"),
+                                f"{carpeta}_{elegido}_png")
+                mostrar_archivo(os.path.join(ruta_c, f"{elegido}.csv"),
+                                f"{carpeta}_{elegido}_csv")
+        else:                                # base o sesgo: mostrar todo
+            for a in [x for x in archivos if x.endswith(".png")] + \
+                     [x for x in archivos if x.endswith(".csv")]:
+                mostrar_archivo(os.path.join(ruta_c, a), f"{carpeta}_{a}")
+        with st.expander("¿Cómo leo esto?"):
+            st.markdown(COMO_LEER_NUMEROS + COMO_LEER_CAJAS)
+
+# --------------------------------- Reporte ----------------------------------
+IMAGEN_MD = re.compile(r"^!\[(.*?)\]\((.+?)\)\s*$")
+
+
+def mostrar_markdown(texto, carpeta_base):
+    """st.markdown no muestra imagenes con ruta local: se separan y se
+    muestran con st.image."""
+    bloque = []
+    for linea in texto.splitlines():
+        m = IMAGEN_MD.match(linea)
+        if m:
+            if bloque:
+                st.markdown("\n".join(bloque))
+                bloque = []
+            ruta = os.path.normpath(os.path.join(carpeta_base, m.group(2)))
+            if os.path.exists(ruta):
+                st.image(ruta, width="stretch")
+            else:
+                st.warning(f"No se encontró la imagen {m.group(2)}")
+        else:
+            bloque.append(linea)
+    if bloque:
+        st.markdown("\n".join(bloque))
+
+
+with tab_rep:
+    if not os.path.exists(ARCHIVO_REPORTE):
+        st.warning("No se encontró docs/reporte_referencia.md")
+    else:
+        with open(ARCHIVO_REPORTE, encoding="utf-8") as fh:
+            texto_rep = fh.read()
+        st.download_button("Descargar la guía (.md)", texto_rep,
+                           "reporte_referencia.md", "text/markdown")
+        mostrar_markdown(texto_rep, os.path.dirname(ARCHIVO_REPORTE))

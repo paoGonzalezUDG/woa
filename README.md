@@ -1,23 +1,41 @@
-# Proyecto final: Whale Optimization Algorithm (WOA)
+# Proyecto final: el algoritmo de la ballena (WOA)
 
-Implementacion en Python del algoritmo de optimizacion de la ballena
-(Mirjalili y Lewis, 2016) para minimizar las **primeras 5 funciones de prueba**
-de la pagina de Wikipedia *Test functions for optimization*: Rastrigin,
-Ackley, Sphere, Rosenbrock y Beale.
+Programamos en Python el **Whale Optimization Algorithm** (Mirjalili y Lewis,
+2016) para encontrar el punto más bajo de las **primeras 5 funciones de
+prueba** de Wikipedia: Rastrigin, Ackley, Sphere, Rosenbrock y Beale. Luego
+hicimos experimentos cambiando sus parámetros para ver qué efecto tiene cada
+uno.
 
-Objetivo del proyecto (criterios del profesor): implementar el algoritmo,
-hacer experimentos que varien sus parametros, observar el efecto sobre el
-resultado y entregar un reporte escrito (portada, introduccion, desarrollo,
-experimentacion, resultados, conclusiones, bibliografia). **Lo que se evalua
-es la discusion de los resultados en el reporte**, no el codigo.
+**Lo que evalúa el profe es el reporte escrito** (sobre todo la discusión de
+los resultados), no el código. Para escribirlo tenemos una guía completa:
+
+> **[docs/reporte_referencia.md](docs/reporte_referencia.md)**: todo el
+> contenido del reporte en el orden que pidió el profe, explicado en
+> sencillo y con los números de nuestros experimentos.
+>
+> **[docs/TODO.md](docs/TODO.md)**: lo que falta por hacer antes de entregar
+> y lo que ya está comprobado.
 
 ---
 
-## Como usar el proyecto
+## Contenido
 
-### 1. Descargarlo e instalar (solo la primera vez)
+1. [Empezar](#1-empezar)
+2. [Qué hay en el proyecto](#2-qué-hay-en-el-proyecto)
+3. [Cómo usar la app](#3-cómo-usar-la-app)
+4. [La carpeta resultados](#4-la-carpeta-resultados)
+5. [Ver el algoritmo en el código](#5-ver-el-algoritmo-en-el-código)
+6. [Regenerar los resultados](#6-regenerar-los-resultados)
+7. [Comprobar que todo está bien (pruebas)](#7-comprobar-que-todo-está-bien-pruebas)
+8. [Si algo falla](#8-si-algo-falla)
 
-Requiere Python 3.10 o mayor.
+---
+
+## 1. Empezar
+
+Necesitas Python 3.10 o más nuevo.
+
+**La primera vez** (descargar e instalar):
 
 ```
 git clone https://github.com/paoGonzalezUDG/woa.git
@@ -25,297 +43,207 @@ cd woa
 pip install -r requirements.txt
 ```
 
-Si el proyecto ya esta en tu computadora, para traer los cambios mas
-recientes: `git pull`.
+**Para traer los cambios más recientes:** `git pull` y luego
+`pip install -r requirements.txt` (por si se agregó alguna librería; por
+ejemplo, la simulación 3D necesita `plotly`).
 
-### 2. Abrir la interfaz
-
-Desde la terminal (por ejemplo la de VS Code), dentro de la carpeta del
-proyecto:
+**Para abrir la app:**
 
 ```
 streamlit run app.py
 ```
 
-Se abre sola en el navegador; si no, entra a <http://localhost:8501>.
-Para cerrarla: `Ctrl + C` en la terminal.
+Se abre sola en el navegador (si no, entra a <http://localhost:8501>). Para
+cerrarla, `Ctrl + C` en la terminal.
 
-En la **barra de la izquierda** se elige la funcion, los limites del dominio,
-los parametros de WOA y la semilla. Todas las pestanas usan esos valores.
+---
 
-### 3. Ver el algoritmo paso a paso (para entender las formulas)
-
-1. Abre la pestana **Paso a paso** (la segunda).
-2. En la barra izquierda elige una funcion. **Ackley** es la mas clara para
-   empezar.
-3. Usa los controles:
-   - **Iteracion t** (slider) y **Ballena #**: eligen que ballena ver y en
-     que momento.
-   - **Ballena >**, **< Ballena**, **Iteracion >**: avanzan o retroceden.
-   - **Buscar ejemplo de** + **Siguiente ejemplo**: saltan directo a una
-     ballena que use rodear, buscar o espiral.
-4. Lo que aparece:
-   - **Derecha:** el calculo completo con los numeros reales, en el orden
-     del algoritmo: `a` -> `r1, r2` -> `A, C` -> decision por `p` -> decision
-     por `|A|` -> `D` -> nueva posicion -> si mejoro.
-   - **Izquierda:** el mapa con la ballena antes -> despues (flecha), la
-     presa, y una linea punteada con todos los lugares a los que pudo llegar.
-   - **Abajo:** de donde sale `A`, la decision por `p` y el factor de la
-     espiral.
-
-Sugerencia para estudiar: hacer el calculo **a mano** con los numeros que
-aparecen y comparar con la pantalla.
-
-### 4. Ver los efectos de los parametros (para la discusion)
-
-- **Comparar (visual):** elige un parametro y dos valores (A y B). Muestra
-  una animacion lado a lado con la misma semilla, la fraccion de ballenas que
-  usa cada regla con el tiempo, la dispersion y la convergencia. Se puede
-  cambiar a "Pausar en un momento" para explicar un instante. Comparacion
-  recomendada: **Ackley con `a_inicial` 1 contra 3**.
-- **Experimento:** varia un parametro con muchas corridas (30 por defecto).
-  Da la tabla y boxplots, y se puede descargar el CSV. Estos son los datos
-  validos para el reporte; las animaciones son de una sola corrida.
-- **Sesgo al centro:** la misma funcion con el optimo movido de lugar, con
-  animacion y estadistica.
-
-### 5. Ver la version detallada en el codigo
-
-Abre `paso_a_paso.py`. La funcion importante es `woa_detallado` (primeras
-~70 lineas): es el mismo algoritmo que `woa.py`, pero en cada paso guarda un
-diccionario con `r1, r2, A, C, p, l`, la regla, `D` y las posiciones antes y
-despues. Conviene leerla junto a `woa.py`. El resto del archivo
-(`explicacion`, `figura_movimiento`, `figura_decisiones`) solo convierte esos
-numeros en el texto y las graficas de la pestana.
-
-Para ver los numeros sin la interfaz (ballena 0, iteracion 0):
+## 2. Qué hay en el proyecto
 
 ```
-python -c "from paso_a_paso import woa_detallado; from funciones import ackley; r = woa_detallado(ackley, -5, 5, 2, seed=0); d = r['iteraciones'][0]['ballenas'][0]; print({k: d[k] for k in ['r1','r2','A','C','p','l','regla']})"
+woa/
+├── app.py               ▶ Abre la app:  streamlit run app.py
+├── experimentos.py      ▶ Regenera los resultados:  python experimentos.py
+│
+├── algoritmo/           Lo que hay que entender
+│   ├── woa.py               El algoritmo de la ballena.
+│   └── funciones.py         Las 5 funciones de prueba.
+├── interfaz/            Apoyo de la app (no hace falta estudiarlo)
+│   ├── visual.py            Gráficas y animaciones.
+│   ├── visual3d.py          Simulación 3D interactiva.
+│   └── paso_a_paso.py       Versión del algoritmo que anota cada número.
+│
+├── resultados/          Tablas y gráficas para el reporte (una carpeta por función).
+├── docs/
+│   ├── reporte_referencia.md   Guía para escribir el reporte.
+│   └── TODO.md                 Lo que falta por hacer antes de entregar.
+├── pruebas/             Revisan que todo funcione y los números sean correctos.
+│
+├── README.md            Este archivo.
+├── requirements.txt     Librerías que hay que instalar.
+└── CLAUDE.md            Notas para el asistente de IA (se puede ignorar).
+```
+
+`README.md`, `requirements.txt`, `CLAUDE.md` y `.gitignore` se quedan en la
+raíz a propósito: GitHub, `pip` y las herramientas los buscan ahí.
+
+| Archivo | Qué hace | ¿Hay que entenderlo? |
+|---|---|---|
+| `algoritmo/woa.py` | Pone las ballenas al azar y en cada vuelta mueve a cada una con una de las 3 reglas (rodear, buscar o espiral). Regresa la mejor respuesta. | **Sí, bien** |
+| `algoritmo/funciones.py` | Las fórmulas de las 5 funciones, su dominio y dónde está su mínimo. | Sí |
+| `experimentos.py` | Repite el algoritmo 30 veces por configuración, saca promedios y genera la carpeta `resultados/`. | La idea general |
+| `interfaz/paso_a_paso.py` | Hace exactamente lo mismo que `woa.py` (da los mismos resultados), pero guarda todos los números de cada ballena para mostrarlos en la app. | Ayuda a estudiar |
+| `app.py`, `interfaz/visual.py` y `interfaz/visual3d.py` | La interfaz, sus dibujos y la simulación 3D. | No |
+
+---
+
+## 3. Cómo usar la app
+
+Toda la app está escrita en lenguaje sencillo. Si es la primera vez, abre la
+pestaña **Empieza aquí**: explica las palabras básicas (vuelta, semilla,
+corrida...) con ejemplos.
+
+En la **barra de la izquierda** eliges la función y ajustas el algoritmo.
+Todas las pestañas usan esos valores. Cada ajuste tiene un ⓘ que explica qué
+hace, y el botón **Volver a los valores por defecto** lo regresa todo a como
+estaba.
+
+Colores en todas las gráficas: **azul** = rodear, **naranja** = buscar,
+**verde** = espiral, gris = posición inicial, X amarilla = la mejor ballena
+(la presa), estrella roja = el mínimo real.
+
+| Pestaña | Qué ves | Úsala para... |
+|---|---|---|
+| **Empieza aquí** | Qué es el proyecto, qué pestaña usar y un glosario con ejemplos. | Empezar. |
+| **Una corrida** | El algoritmo corrido una vez: el resultado, cómo fue mejorando y dónde están las ballenas. | Ver el algoritmo funcionando. |
+| **Simulación 3D** | Las ballenas moviéndose sobre el terreno de la función, en 3D. Se gira con el mouse, se acerca con la rueda y tiene ▶ Reproducir. | Entender **cómo es cada función** y cómo la recorren las ballenas. |
+| **Paso a paso** | Una ballena en una vuelta, con todos los números y las cuentas. | **Entender las fórmulas.** |
+| **Comparar** | Dos valores de un ajuste lado a lado, con animación. | Entender **por qué** un ajuste cambia el resultado. |
+| **Muchas corridas** | Un ajuste probado muchas veces: tabla, gráficas y descarga en CSV. | Sacar datos confiables. |
+| **Sesgo al centro** | La misma función con el mínimo movido de lugar. | El hallazgo más interesante (ver el reporte de referencia). |
+| **Resultados** | Las gráficas y tablas de la carpeta `resultados/`, con botones de descarga (también todo en un .zip). | Ver y descargar los resultados para el reporte. |
+| **Reporte** | El reporte de referencia completo, con sus gráficas. | Leer la guía del reporte sin salir de la app. |
+
+### Paso a paso (la mejor para estudiar)
+
+1. Elige **Ackley** en la barra izquierda (es la más clara).
+2. Muévete con los controles:
+   - **Vuelta** y **Ballena #**: qué ballena ver y en qué vuelta.
+   - **◀ Ballena**, **Ballena ▶**, **Vuelta ▶**: avanzar y retroceder.
+   - El menú de movimientos + **Ir al siguiente ejemplo**: saltar directo a
+     una ballena que use rodear, buscar o espiral.
+3. A la **derecha** sale el cálculo con los números reales, en orden. A la
+   **izquierda**, el dibujo: la ballena antes → después, la presa y una línea
+   punteada con todos los lugares a los que pudo llegar. **Abajo**, de dónde
+   salió cada decisión.
+
+Tip: haz el cálculo **a mano** con los números de la pantalla y compara.
+
+### Comparar
+
+Elige un ajuste y dos valores. Corre el algoritmo dos veces con la misma
+suerte (misma semilla), cambiando solo ese parámetro. Puedes ver la animación
+o pausar en un momento para explicarlo. La comparación más clara: **Ackley
+con `a_inicial` 1 contra 3**.
+
+Ojo: las animaciones son de **una sola corrida**. Los datos para el reporte
+deben salir de la pestaña *Muchas corridas* o de la carpeta `resultados/`
+(30 corridas).
+
+---
+
+## 4. La carpeta resultados
+
+Aquí están las tablas (`.csv`, se abren en Excel) y las gráficas (`.png`)
+para el reporte. Cada configuración se corrió **30 veces**.
+
+```
+resultados/
+├── 0_base/          Las 5 funciones juntas con los valores por defecto
+├── 1_Rastrigin/     Una carpeta por función, en el orden de Wikipedia.
+├── 2_Ackley/        Dentro, un .csv + .png por parámetro probado:
+├── 3_Sphere/        n_ballenas, max_iter, a_inicial, b, p_umbral
+├── 4_Rosenbrock/
+├── 5_Beale/
+└── 6_sesgo_centro/  La misma función con el mínimo movido de lugar
+```
+
+También se pueden ver en la app, pestaña **Resultados**.
+
+Ejemplo: `4_Rosenbrock/a_inicial.png` muestra qué pasa en Rosenbrock al
+probar `a` = 1, 2 y 3.
+
+Cómo leer las tablas y las gráficas: [resultados/README.md](resultados/README.md).
+Qué significa cada resultado y por qué pasa: [reporte de referencia](docs/reporte_referencia.md).
+
+---
+
+## 5. Ver el algoritmo en el código
+
+- `algoritmo/woa.py` es el algoritmo. Las líneas con `regla[i] = ...`,
+  `presas` y `reglas` solo sirven para las gráficas; no cambian el resultado.
+- `interfaz/paso_a_paso.py`: la función `woa_detallado` (las primeras ~70
+  líneas) es el mismo algoritmo, pero guarda en cada paso `r1, r2, A, C, p, l`,
+  la regla usada, la distancia `D` y la posición antes y después. Léela junto
+  a `algoritmo/woa.py`.
+
+Para ver los números de una ballena desde la terminal, sin abrir la app
+(desde la carpeta del proyecto):
+
+```
+python -c "from interfaz.paso_a_paso import woa_detallado; from algoritmo.funciones import ackley; r = woa_detallado(ackley, -5, 5, 2, seed=0); d = r['iteraciones'][0]['ballenas'][0]; print({k: d[k] for k in ['r1','r2','A','C','p','l','regla']})"
 ```
 
 `regla`: 0 = rodear, 1 = buscar, 2 = espiral.
 
-### 6. Regenerar los resultados del reporte
+---
+
+## 6. Regenerar los resultados
 
 ```
 python experimentos.py            # todo, 30 corridas (~3 min)
 python experimentos.py --rapido   # 5 corridas, solo para probar
+python experimentos.py --solo-sesgo   # solo el experimento de sesgo al centro
 ```
 
-Sobrescribe los archivos de `resultados/`. Con la misma semilla los numeros
-salen iguales.
-
-### Problemas comunes
-
-| Problema | Solucion |
-|---|---|
-| `streamlit` no se reconoce como comando | `pip install -r requirements.txt` o `python -m streamlit run app.py` |
-| `ModuleNotFoundError` | Correr los comandos dentro de la carpeta del proyecto e instalar requirements |
-| La animacion tarda | La primera vez tarda ~5 s; despues queda guardada |
-| El puerto 8501 esta ocupado | Cerrar la otra ventana de streamlit o usar `streamlit run app.py --server.port 8502` |
+Esto sobrescribe la carpeta `resultados/`. Como todo usa semillas fijas, con
+el mismo código salen exactamente los mismos números.
 
 ---
 
-## Estructura
+## 7. Comprobar que todo está bien (pruebas)
+
+La carpeta `pruebas/` revisa automáticamente que todo funcione y que los
+números sean correctos. Conviene correrla antes de entregar o si se cambia
+algo del código.
 
 ```
-woa_proyecto/
-├── woa.py            El algoritmo WOA. Lo mas importante para entender.
-├── funciones.py      Las 5 funciones de prueba, sus dominios y optimos.
-├── experimentos.py   Corre WOA muchas veces y genera tablas y graficas.
-├── app.py            Interfaz web (Streamlit). Solo usa los demas archivos.
-├── visual.py         Graficas y animaciones que usa app.py.
-├── paso_a_paso.py    Copia "con lupa" de WOA que anota cada numero.
-├── resultados/       Tablas (CSV) y graficas (PNG) para el reporte.
-└── requirements.txt  Librerias necesarias.
+python -m pytest pruebas -m "not lento"   # todo menos regenerar (~13 min, la app es lo que más tarda)
+python -m pytest pruebas                  # todo, incluye regenerar resultados (~18 min)
 ```
 
-| Archivo | Para que sirve | Hay que entenderlo |
-|---|---|---|
-| `woa.py` | Funcion `woa()`: inicializa las ballenas y en cada iteracion aplica una de las 3 reglas. Devuelve la mejor solucion y la curva de convergencia. | **Si, a fondo** |
-| `funciones.py` | Formulas de las 5 funciones y el diccionario `FUNCIONES` (dominio, dimension, optimo conocido). | Si |
-| `experimentos.py` | `correr()` repite WOA con semillas 0..29; `resumen()` saca media, desviacion, mediana, mejor y peor; `barrido()` varia UN parametro. Como script genera todo `resultados/`. | La idea general |
-| `app.py` | Interfaz con pestanas (ver abajo). | No |
-| `visual.py` | Animaciones GIF y graficas de reglas, dispersion y convergencia. | No |
-| `paso_a_paso.py` | Hace exactamente lo mismo que `woa.py` (mismos resultados con la misma semilla) pero guarda r1, r2, A, C, p, l, la regla y D de cada ballena. | No |
+Si todo sale bien, al final dice `passed` y ningún `failed`.
 
-### Pestanas de la interfaz
-
-| Pestana | Que muestra | Para que usarla |
-|---|---|---|
-| Una ejecucion | Una corrida: resultado, convergencia y, en 2D, la posicion de las ballenas. | Ver el algoritmo funcionando. |
-| Paso a paso | Una ballena en una iteracion, con todos los numeros y el calculo completo. | **Entender las formulas** (seccion Desarrollo). |
-| Comparar (visual) | Dos valores de un parametro lado a lado: animacion, uso de reglas, dispersion. | Explicar **por que** un parametro cambia el resultado. |
-| Experimento | Varia un parametro con muchas corridas: tabla y boxplots, descarga CSV. | Datos para Resultados. |
-| Sesgo al centro | Misma funcion con el optimo movido de lugar. | Discusion critica (ver abajo). |
-| Como funciona | Resumen de las formulas. | Consulta rapida. |
-
-Colores en todas las graficas: **azul** = rodear, **naranja** = buscar,
-**verde** = espiral, gris = posicion inicial, X amarilla = presa,
-estrella roja = optimo real.
-
----
-
-## La carpeta `resultados/`
-
-Tiene todo lo necesario para las secciones de **Resultados** y **Discusion**
-del reporte. La genera `python experimentos.py` (52 archivos): tablas
-(`.csv`, se abren en Excel) y graficas (`.png`).
-
-### Que hay
-
-| Archivo | Que es |
+| Archivo | Qué revisa |
 |---|---|
-| `base.csv` + `base_convergencia.png` | Las 5 funciones con los **parametros por defecto** (30 ballenas, 200 iteraciones, a=2, b=1, p=0.5), 30 corridas cada una. Es el punto de referencia. |
-| `<Funcion>_<parametro>.csv` + `.png` | 25 pares (5 funciones x 5 parametros). Cada uno varia **un solo parametro** y deja los demas por defecto. Ejemplo: `Rosenbrock_a_inicial` prueba a = 1, 2 y 3 en Rosenbrock. |
+| `test_funciones.py` | Las 5 fórmulas con valores calculados a mano, y que el mínimo de verdad sea el mínimo. |
+| `test_algoritmo.py` | Que cada movimiento de cada ballena siga su fórmula (recalculado a mano), que sea reproducible, que las ballenas no se salgan de la zona y que la frecuencia de cada movimiento coincida con la teoría. |
+| `test_resultados.py` | Regenera todos los experimentos y los compara con `resultados/`; revisa que los números escritos en el reporte coincidan con los CSV. |
+| `test_app.py` | Abre cada pestaña con las 5 funciones, prueba ajustes extremos y entradas inválidas, y que la app muestre los mismos números que el algoritmo. |
 
-### Como leer los CSV
+---
 
-Cada fila resume **30 corridas** (semillas 0 a 29) con la misma
-configuracion:
+## 8. Si algo falla
 
-| Columna | Significado |
+| Problema | Solución |
 |---|---|
-| `media` | Promedio del mejor resultado. Se ve muy afectada por corridas malas. |
-| `desv_est` | Que tan distintas fueron las corridas entre si. |
-| `mediana` | El valor del medio: la corrida "tipica". |
-| `mejor` / `peor` | La mejor y la peor de las 30 corridas. |
-| `tiempo_medio_s` | Segundos por corrida. |
-
-Todos los valores son **error respecto al optimo**: el minimo real de las 5
-funciones es 0, asi que mas cerca de 0 es mejor. Por ejemplo, `1.8e-15`
-significa 0.0000000000000018, practicamente 0.
-
-**Media contra mediana:** en Beale la media es 0.10 pero la mediana es
-~1e-8. Eso indica que casi todas las corridas aciertan y unas pocas se quedan
-atoradas en ~0.76, lo que jala el promedio hacia arriba. Por eso se reportan
-las dos.
-
-### Como leer las graficas
-
-**`base_convergencia.png`: una linea por funcion.**
-
-- Eje X: iteracion. Eje Y: el mejor valor encontrado hasta ese momento,
-  promediado sobre las 30 corridas, en escala **logaritmica** (cada marca es
-  100 000 veces menor).
-- **Sphere** baja sin parar hasta 1e-31: es la mas facil.
-- **Rosenbrock** y **Beale** se quedan planas desde temprano: estancadas.
-- **Rastrigin** se ve plana hasta ~90 y luego cae de golpe. Como es un
-  *promedio*, la linea solo baja cuando las ultimas corridas logran escapar
-  de los minimos locales.
-- Ojo al comparar: Rastrigin, Sphere y Rosenbrock estan en 10 dimensiones;
-  Ackley y Beale en 2.
-
-**Graficas de parametros (ejemplo: `Rosenbrock_a_inicial.png`).** Tienen dos
-paneles:
-
-- **Izquierda, boxplot del resultado final:** una caja por valor del
-  parametro. La linea naranja es la mediana; la caja contiene el 50 % central
-  de las corridas (caja alta = resultados muy variables); los bigotes marcan
-  el rango normal y los circulos son corridas atipicas. Mas abajo es mejor.
-  En el ejemplo: con a=1 todas quedan en ~9, con a=2 hay mucha variacion y
-  con a=3 la mediana baja a ~0.09.
-- **Derecha, convergencia media:** una linea por valor. En el ejemplo, a=1
-  baja **mas rapido** al principio pero se estanca en ~9: explota demasiado
-  pronto y nunca explora (**convergencia prematura**). a=3 es mas lenta al
-  inicio porque explora mas tiempo, pero **termina mas abajo**. Es el
-  equilibrio exploracion/explotacion visto en datos reales.
-
-### Como usarla en el reporte
-
-- **Resultados:** `base.csv` como tabla principal y
-  `base_convergencia.png`. Agregar las tablas y graficas de los barridos que
-  muestren algo interesante; no hace falta incluir las 25.
-- **Discusion:** por cada grafica explicar **por que** pasa usando el
-  mecanismo (`a`, |A|, las 3 reglas), no solo "subio o bajo". Los barridos
-  con mas que decir: a_inicial y max_iter en Rosenbrock y Rastrigin,
-  p_umbral en Rosenbrock, y el caso de Beale.
-- **Experimentacion:** mencionar que son 30 corridas por configuracion, con
-  semilla = numero de corrida, asi que todo es reproducible.
-
-Si se cambian parametros o codigo y se vuelve a correr
-`python experimentos.py`, estos archivos se sobrescriben. Con el codigo
-actual salen identicos.
+| `streamlit` no se reconoce como comando | `pip install -r requirements.txt`, o usa `python -m streamlit run app.py` |
+| `ModuleNotFoundError` (por ejemplo `No module named 'plotly'`) | Asegúrate de estar dentro de la carpeta del proyecto y corre `python -m pip install -r requirements.txt`. Si tienes varios Python instalados, `python -m pip` instala en el mismo que usa la app. |
+| La animación tarda | La primera vez tarda unos 5 segundos; después queda guardada. |
+| El puerto 8501 está ocupado | Cierra la otra ventana de streamlit o usa `streamlit run app.py --server.port 8502` |
 
 ---
 
-## El algoritmo en resumen
-
-Cada ballena es una solucion candidata (un vector). La mejor encontrada hasta
-ahora, `mejor_x`, es la **presa** X*. En cada iteracion:
-
-| Concepto | Formula | En `woa.py` |
-|---|---|---|
-| `a` baja de 2 a 0 | `a = a_inicial (1 - t/T)` | `a = a_inicial * (1 - t / max_iter)` |
-| Coeficientes | `A = 2a r1 - a ; C = 2 r2` | `A = ...`, `C = ...` |
-| Rodear (p<0.5, abs(A)<1) | `X = X* - A abs(C X* - X)` | primer `if` interno |
-| Buscar (p<0.5, abs(A)>=1) | `X = Xrand - A abs(C Xrand - X)` | `else` interno |
-| Espiral (p>=0.5) | `X = abs(X* - X) e^(bl) cos(2 pi l) + X*` | `else` externo |
-
-Al inicio `a` es grande, abs(A) >= 1 es frecuente y hay **exploracion**. Al
-final `a` tiende a 0, abs(A) < 1 y hay **explotacion**.
-
-## Las 5 funciones
-
-| Funcion | Dimension | Dominio | Minimo | Dificultad |
-|---|---|---|---|---|
-| Rastrigin | n (10) | +-5.12 | f(0,...,0) = 0 | Muchisimos minimos locales |
-| Ackley | 2 | +-5 | f(0,0) = 0 | Casi plana con un hoyo en el centro |
-| Sphere | n (10) | +-100 * | f(0,...,0) = 0 | La mas facil, un solo "tazon" |
-| Rosenbrock | n (10) | +-30 * | f(1,...,1) = 0 | Valle largo, curvo y casi plano |
-| Beale | 2 | +-4.5 | f(3, 0.5) = 0 | Valles estrechos, minimos locales |
-
-\* Dominio elegido por nosotras (en Wikipedia es infinito).
-
----
-
-## Decisiones propias (deben aparecer en el reporte)
-
-- Sphere y Rosenbrock: dominio +-100 y +-30.
-- Rastrigin, Sphere y Rosenbrock: n = 10 por defecto.
-- A y C son escalares por ballena e iteracion; l ~ U[-1, 1]; las posiciones
-  fuera del dominio se recortan al limite (`np.clip`).
-- Parametros por defecto: 30 ballenas, 200 iteraciones, a_inicial = 2,
-  b = 1, p_umbral = 0.5.
-- Semilla de la corrida k = k: todo es reproducible.
-
-## Experimentos
-
-`experimentos.py` varia un parametro a la vez, con 30 corridas por valor:
-
-| Parametro | Valores |
-|---|---|
-| n_ballenas | 10, 30, 50, 100 |
-| max_iter | 50, 100, 200, 500 |
-| a_inicial | 1, 2, 3 |
-| b | 0.5, 1, 2 |
-| p_umbral | 0.2, 0.5, 0.8 |
-
-### Observaciones de la corrida incluida (verificar con la suya)
-
-- Rastrigin, Ackley y Sphere llegan a error ~1e-15 o menor con los parametros
-  por defecto.
-- `max_iter` es el parametro con efecto mas claro en todas las funciones.
-- `a_inicial = 3` mejora mucho Rosenbrock (mediana 8.56 -> 0.09) pero empeora
-  Sphere: es el equilibrio exploracion/explotacion.
-- Con `a_inicial = 1` nunca hay exploracion (abs(A) <= 1 siempre).
-- `b` casi no tiene efecto, salvo en Rosenbrock.
-- Beale: el peor caso es 0.762 en TODAS las configuraciones (minimo local);
-  por eso la media (0.10) y la mediana (~1e-8) son tan distintas.
-- Rosenbrock es la mas dificil: muchas corridas se quedan en ~8.9.
-  Hipotesis NO verificada sobre la causa.
-- **Sesgo al centro:** las 3 funciones "faciles" tienen el optimo en el
-  origen. Al mover el optimo (pestana *Sesgo al centro*) el resultado empeora
-  mucho (Sphere 10D: 1e-34 -> 1.77). Causa probable: el termino C*X* jala
-  hacia el 0.
-
----
-
-## Bibliografia
-
-- Mirjalili, S. y Lewis, A. (2016). The Whale Optimization Algorithm.
-  *Advances in Engineering Software*, 95, 51-67.
-  doi:10.1016/j.advengsoft.2016.01.008
-- Wikipedia, "Test functions for optimization".
-- https://seyedalimirjalili.com/woa
+**Referencia principal:** Mirjalili, S., y Lewis, A. (2016). The Whale
+Optimization Algorithm. *Advances in Engineering Software, 95*, 51-67.
+La bibliografía completa está en el [reporte de referencia](docs/reporte_referencia.md#6-bibliografía).
