@@ -13,16 +13,107 @@ es la discusion de los resultados en el reporte**, no el codigo.
 
 ---
 
-## Inicio rapido
+## Como usar el proyecto
 
-```
-pip install -r requirements.txt
-streamlit run app.py              # interfaz web (se abre en el navegador)
-python experimentos.py            # regenera resultados/ (~3 min)
-python experimentos.py --rapido   # version corta, solo para probar
-```
+### 1. Descargarlo e instalar (solo la primera vez)
 
 Requiere Python 3.10 o mayor.
+
+```
+git clone https://github.com/paoGonzalezUDG/woa.git
+cd woa
+pip install -r requirements.txt
+```
+
+Si el proyecto ya esta en tu computadora, para traer los cambios mas
+recientes: `git pull`.
+
+### 2. Abrir la interfaz
+
+Desde la terminal (por ejemplo la de VS Code), dentro de la carpeta del
+proyecto:
+
+```
+streamlit run app.py
+```
+
+Se abre sola en el navegador; si no, entra a <http://localhost:8501>.
+Para cerrarla: `Ctrl + C` en la terminal.
+
+En la **barra de la izquierda** se elige la funcion, los limites del dominio,
+los parametros de WOA y la semilla. Todas las pestanas usan esos valores.
+
+### 3. Ver el algoritmo paso a paso (para entender las formulas)
+
+1. Abre la pestana **Paso a paso** (la segunda).
+2. En la barra izquierda elige una funcion. **Ackley** es la mas clara para
+   empezar.
+3. Usa los controles:
+   - **Iteracion t** (slider) y **Ballena #**: eligen que ballena ver y en
+     que momento.
+   - **Ballena >**, **< Ballena**, **Iteracion >**: avanzan o retroceden.
+   - **Buscar ejemplo de** + **Siguiente ejemplo**: saltan directo a una
+     ballena que use rodear, buscar o espiral.
+4. Lo que aparece:
+   - **Derecha:** el calculo completo con los numeros reales, en el orden
+     del algoritmo: `a` -> `r1, r2` -> `A, C` -> decision por `p` -> decision
+     por `|A|` -> `D` -> nueva posicion -> si mejoro.
+   - **Izquierda:** el mapa con la ballena antes -> despues (flecha), la
+     presa, y una linea punteada con todos los lugares a los que pudo llegar.
+   - **Abajo:** de donde sale `A`, la decision por `p` y el factor de la
+     espiral.
+
+Sugerencia para estudiar: hacer el calculo **a mano** con los numeros que
+aparecen y comparar con la pantalla.
+
+### 4. Ver los efectos de los parametros (para la discusion)
+
+- **Comparar (visual):** elige un parametro y dos valores (A y B). Muestra
+  una animacion lado a lado con la misma semilla, la fraccion de ballenas que
+  usa cada regla con el tiempo, la dispersion y la convergencia. Se puede
+  cambiar a "Pausar en un momento" para explicar un instante. Comparacion
+  recomendada: **Ackley con `a_inicial` 1 contra 3**.
+- **Experimento:** varia un parametro con muchas corridas (30 por defecto).
+  Da la tabla y boxplots, y se puede descargar el CSV. Estos son los datos
+  validos para el reporte; las animaciones son de una sola corrida.
+- **Sesgo al centro:** la misma funcion con el optimo movido de lugar, con
+  animacion y estadistica.
+
+### 5. Ver la version detallada en el codigo
+
+Abre `paso_a_paso.py`. La funcion importante es `woa_detallado` (primeras
+~70 lineas): es el mismo algoritmo que `woa.py`, pero en cada paso guarda un
+diccionario con `r1, r2, A, C, p, l`, la regla, `D` y las posiciones antes y
+despues. Conviene leerla junto a `woa.py`. El resto del archivo
+(`explicacion`, `figura_movimiento`, `figura_decisiones`) solo convierte esos
+numeros en el texto y las graficas de la pestana.
+
+Para ver los numeros sin la interfaz (ballena 0, iteracion 0):
+
+```
+python -c "from paso_a_paso import woa_detallado; from funciones import ackley; r = woa_detallado(ackley, -5, 5, 2, seed=0); d = r['iteraciones'][0]['ballenas'][0]; print({k: d[k] for k in ['r1','r2','A','C','p','l','regla']})"
+```
+
+`regla`: 0 = rodear, 1 = buscar, 2 = espiral.
+
+### 6. Regenerar los resultados del reporte
+
+```
+python experimentos.py            # todo, 30 corridas (~3 min)
+python experimentos.py --rapido   # 5 corridas, solo para probar
+```
+
+Sobrescribe los archivos de `resultados/`. Con la misma semilla los numeros
+salen iguales.
+
+### Problemas comunes
+
+| Problema | Solucion |
+|---|---|
+| `streamlit` no se reconoce como comando | `pip install -r requirements.txt` o `python -m streamlit run app.py` |
+| `ModuleNotFoundError` | Correr los comandos dentro de la carpeta del proyecto e instalar requirements |
+| La animacion tarda | La primera vez tarda ~5 s; despues queda guardada |
+| El puerto 8501 esta ocupado | Cerrar la otra ventana de streamlit o usar `streamlit run app.py --server.port 8502` |
 
 ---
 
