@@ -24,9 +24,12 @@ Correr todo desde la raiz del proyecto.
 - `interfaz/visual3d.py`: `figura_3d(f, lb, ub, res, optimo, log, ms, camara,
   rastro, opacidad)` -> figura Plotly (superficie + ballenas, 80 cuadros; los
   frames solo actualizan trazas 1, 2 y 3 si hay rastro). Altura log10(1+f).
-  Al reproducir NO se puede arrastrar (redraw en cada cuadro): por eso
-  camara "arriba"/"inclinada" con botones relayout, o "girar" (cada frame
-  trae su scene.camera). Arriba = ortografica; su zoom es aspectratio.
+  Plotly ignora el mouse mientras anima (cualquier cambio de datos 3D lo
+  bloquea). `html_3d(fig)` arma una pagina con plotly.js adentro y JS
+  propio: al agarrar/rueda pausa, al soltar sigue, y copia la camara a
+  gd.layout para que los cuadros no la regresen. app.py la muestra con
+  `st.iframe` (no st.plotly_chart). camara "girar" = cada frame trae su
+  scene.camera. Arriba = ortografica; su zoom es aspectratio.
   Cada frame trae tambien una annotation con la explicacion (fase segun a,
   conteos, si mejoro la presa). Franjas en y: escena 0.21-1, explicacion,
   botones 0.058, barra 0. Humo exhaustivo: 480 casos, 0 fallas.

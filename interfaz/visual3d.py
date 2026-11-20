@@ -5,6 +5,8 @@ La funcion de 2 variables se dibuja como un terreno (superficie) y las
 ballenas como puntos encima. Se puede girar, hacer zoom y reproducir la
 animacion vuelta por vuelta. Usa los mismos colores que el resto de la app.
 """
+import json
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -15,8 +17,8 @@ LEYENDA_REGLAS = ["Rodear: se acerca a la presa",
                   "Buscar: explora otra zona",
                   "Espiral: gira hacia la presa"]
 
-# Camaras: al reproducir no se puede arrastrar (Plotly redibuja la escena en
-# cada cuadro), por eso hay botones de vista y la opcion de girar sola.
+# Camaras iniciales y botones de vista. Plotly ignora el mouse mientras
+# anima; html_3d() lo arregla pausando mientras se agarra la grafica.
 CAMARA_ARRIBA = dict(eye=dict(x=0, y=-0.01, z=2), up=dict(x=0, y=1, z=0),
                      projection=dict(type="orthographic"))
 CAMARA_INCLINADA = dict(eye=dict(x=1.2, y=-1.2, z=0.85), up=dict(x=0, y=0, z=1),
@@ -251,3 +253,80 @@ def figura_3d(f, lb, ub, res, optimo, log=True, n_cuadros=80, ms=150,
                                              transition=dict(duration=0))])
                    for t in cuadros])])
     return fig
+
+
+# JavaScript que se agrega a la pagina de la grafica. Plotly ignora el mouse
+# mientras anima, asi que: al agarrar la grafica (o usar la rueda) se pausa,
+# al soltar sigue desde la misma vuelta, y la camara elegida se guarda en el
+# layout para que los cuadros siguientes no la regresen.
+_JS_GIRAR = """
+(function () {
+  var gd = document.getElementById('{plot_id}');
+  var opciones = __OPCIONES__;
+  var corriendo = false, reanudar = false, reloj = null;
+  gd.on('plotly_animating', function () { corriendo = true; });
+  gd.on('plotly_animated', function () { corriendo = false; });
+  gd.on('plotly_animationinterrupted', function () { corriendo = false; });
+
+  function guardar(e) {
+    for (var k in e) {
+      if (k.indexOf('scene.') !== 0) continue;
+      var partes = k.split('.').slice(1), o = gd.layout.scene;
+      for (var i = 0; i < partes.length - 1; i++) {
+        o[partes[i]] = o[partes[i]] || {};
+        o = o[partes[i]];
+      }
+      o[partes[partes.length - 1]] = JSON.parse(JSON.stringify(e[k]));
+    }
+  }
+  gd.on('plotly_relayouting', guardar);
+  gd.on('plotly_relayout', guardar);
+
+  function enEscena(ev) {
+    return ev.target && ev.target.closest && ev.target.closest('.gl-container');
+  }
+  function pausar() {
+    reanudar = true;
+    Plotly.animate(gd, [null], {mode: 'immediate', transition: {duration: 0},
+                                frame: {duration: 0, redraw: false}});
+  }
+  function seguir() {
+    reanudar = false;
+    Plotly.animate(gd, null, opciones);
+  }
+  function agarrar(ev) {
+    if (corriendo && !reanudar && enEscena(ev)) pausar();
+  }
+  function soltar() {
+    if (reanudar && !reloj) setTimeout(seguir, 0);
+  }
+  gd.addEventListener('pointerdown', agarrar, true);
+  gd.addEventListener('mousedown', agarrar, true);
+  gd.addEventListener('touchstart', agarrar, true);
+  window.addEventListener('pointerup', soltar, true);
+  window.addEventListener('mouseup', soltar, true);
+  window.addEventListener('touchend', soltar, true);
+  gd.addEventListener('wheel', function (ev) {
+    if (!enEscena(ev)) return;
+    if (corriendo && !reanudar) pausar();
+    if (reanudar) {
+      clearTimeout(reloj);
+      reloj = setTimeout(function () { reloj = null; seguir(); }, 500);
+    }
+  }, true);
+})();
+"""
+
+
+def html_3d(fig):
+    """Pagina HTML completa (con plotly.js adentro, funciona sin internet)
+    donde la grafica se puede girar y acercar aunque se este reproduciendo."""
+    opciones = fig.layout.updatemenus[0].buttons[0].args[1]
+    js = _JS_GIRAR.replace("__OPCIONES__", json.dumps(opciones))
+    html = fig.to_html(full_html=True, include_plotlyjs=True, post_script=js,
+                       auto_play=False,
+                       div_id="simulacion_3d", default_width="100%",
+                       default_height=f"{fig.layout.height}px",
+                       config=dict(displaylogo=False))
+    return html.replace("<head>", "<head><style>html, body {margin: 0; "
+                        "background: white;}</style>", 1)

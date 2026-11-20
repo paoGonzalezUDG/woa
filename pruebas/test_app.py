@@ -50,6 +50,31 @@ def _arr(v):
     return np.array(v, dtype=float)
 
 
+def _spec_3d(at):
+    """La Simulacion 3D se muestra con st.iframe (HTML con plotly.js y JS
+    propio). Saca data, layout y frames del HTML para revisarlos."""
+    iframes = at.get("iframe")
+    assert len(iframes) == 1
+    html = iframes[0].proto.srcdoc
+    assert "plotly_relayouting" in html          # el JS para girar al reproducir
+    dec = json.JSONDecoder()
+
+    def leer(marca, n):
+        i = html.rindex(marca) + len(marca)       # la ultima: no la de plotly.js
+        valores = []
+        for _ in range(n):
+            i = html.index(",", i) + 1
+            while html[i].isspace():
+                i += 1
+            v, i = dec.raw_decode(html, i)
+            valores.append(v)
+        return valores
+
+    data, layout = leer("Plotly.newPlot(", 2)
+    frames, = leer("Plotly.addFrames(", 1)
+    return dict(data=data, layout=layout, frames=frames)
+
+
 def boton(at, etiqueta, key=None):
     for b in at.button:
         if b.label == etiqueta and (key is None or b.key == key):
@@ -95,9 +120,7 @@ def test_una_corrida_muestra_lo_mismo_que_el_algoritmo(app, nombre):
 def test_simulacion_3d(app, nombre):
     at = elegir_funcion(app, nombre)
     _sin_errores(at)
-    graficas = at.get("plotly_chart")
-    assert len(graficas) == 1
-    spec = json.loads(graficas[0].proto.spec)
+    spec = _spec_3d(at)
     assert len(spec["frames"]) == 80
     assert spec["data"][0]["type"] == "surface"
     # 30 ballenas en el primer cuadro, dentro de la zona de busqueda
@@ -119,7 +142,7 @@ def test_simulacion_3d_opciones(app):
     at.toggle(key="rastro_3d").set_value(True).run()
     at.slider(key="opac_3d").set_value(50).run()
     _sin_errores(at)
-    spec = json.loads(at.get("plotly_chart")[0].proto.spec)
+    spec = _spec_3d(at)
     assert spec["data"][0]["opacity"] == 0.5
     assert spec["data"][3]["mode"] == "lines"          # camino de la presa
     camaras = [fr["layout"]["scene"]["camera"]["eye"]["x"]
@@ -132,7 +155,7 @@ def test_simulacion_3d_sin_escala_log(app):
     at = elegir_funcion(app, "Rosenbrock")
     at.toggle[0].set_value(False).run()          # "Aplanar los picos"
     _sin_errores(at)
-    spec = json.loads(at.get("plotly_chart")[0].proto.spec)
+    spec = _spec_3d(at)
     assert _arr(spec["data"][0]["z"]).max() > 1e6      # sin aplanar
     for vel in ("Lenta", "Rápida"):
         at.select_slider[0].set_value(vel).run()

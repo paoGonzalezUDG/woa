@@ -116,7 +116,7 @@ Colores en todas las gráficas: **azul** = rodear, **naranja** = buscar,
 |---|---|---|
 | **Empieza aquí** | Qué es el proyecto, qué pestaña usar y un glosario con ejemplos. | Empezar. |
 | **Una corrida** | El algoritmo corrido una vez: el resultado, cómo fue mejorando y dónde están las ballenas. | Ver el algoritmo funcionando. |
-| **Simulación 3D** | Las ballenas moviéndose sobre el terreno de la función, en 3D. Tiene ▶ Reproducir, cámara desde arriba, inclinada o girando sola, el camino de la mejor ballena y terreno transparente. En pausa se gira con el mouse. | Entender **cómo es cada función** y cómo la recorren las ballenas. |
+| **Simulación 3D** | Las ballenas moviéndose sobre el terreno de la función, en 3D. Tiene ▶ Reproducir, cámara desde arriba, inclinada o girando sola, el camino de la mejor ballena y terreno transparente. Se puede girar y acercar con el mouse aunque se esté reproduciendo. | Entender **cómo es cada función** y cómo la recorren las ballenas. |
 | **Paso a paso** | Una ballena en una vuelta, con todos los números y las cuentas. | **Entender las fórmulas.** |
 | **Comparar** | Dos valores de un ajuste lado a lado, con animación. | Entender **por qué** un ajuste cambia el resultado. |
 | **Muchas corridas** | Un ajuste probado muchas veces: tabla, gráficas y descarga en CSV. | Sacar datos confiables. |

@@ -430,10 +430,10 @@ with tab_3d:
         c1, c2, c3 = st.columns([1.7, 1, 1])
         cam_3d = c1.radio(
             "Cámara", list(CAMARAS_3D), horizontal=True, key="cam_3d",
-            help="Mientras se reproduce no se puede girar con el mouse. "
-                 "**Desde arriba** se ve como un mapa; **Inclinada** se ven "
-                 "las montañas; **Girar sola** le da la vuelta al terreno "
-                 "mientras avanza. En pausa puedes girarla a tu gusto.")
+            help="La vista con la que empieza. **Desde arriba** se ve como "
+                 "un mapa; **Inclinada** se ven las montañas; **Girar sola** "
+                 "le da la vuelta al terreno mientras avanza. Siempre puedes "
+                 "girarla tú arrastrando con el mouse.")
         vel_3d = c2.select_slider("Velocidad", list(VELOCIDAD_3D),
                                   value="Normal")
         opac_3d = c3.slider(
@@ -461,10 +461,13 @@ with tab_3d:
                 ms=VELOCIDAD_3D[vel_3d], camara=CAMARAS_3D[cam_3d],
                 rastro=rastro_3d, opacidad=1 - opac_3d / 100,
                 a_inicial=params["a_inicial"])
-        st.plotly_chart(fig_3d, theme=None, key="fig_3d")
-        st.caption("Pasa el mouse sobre una ballena para ver su valor. En "
-                   "pausa puedes girar la gráfica arrastrando y acercarte con "
-                   "la rueda del mouse.")
+        # Se muestra como pagina propia (no st.plotly_chart) para poder agregar
+        # el JavaScript que deja girar la grafica mientras se reproduce.
+        st.iframe(visual3d.html_3d(fig_3d), height=fig_3d.layout.height + 10)
+        st.caption("Gírala arrastrando con el mouse y acércate con la rueda, "
+                   "aunque se esté reproduciendo: mientras la tienes agarrada "
+                   "se detiene y al soltarla sigue. Pasa el mouse sobre una "
+                   "ballena para ver su valor.")
 
 # ------------------------------- Paso a paso --------------------------------
 @st.cache_data(show_spinner=False)

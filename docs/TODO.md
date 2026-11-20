@@ -52,9 +52,10 @@
   - [x] Con 1 vuelta, *Paso a paso* tronaba.
   - [x] Con muchas ballenas × vueltas, la app se congelaba varios minutos en
         cada clic; ahora muestra un aviso.
-- [x] *Simulación 3D*: mientras se reproduce no se puede girar con el mouse
-      (límite de Plotly). Se agregaron vistas desde arriba / inclinada /
-      girar sola, camino de la presa y terreno transparente.
+- [x] *Simulación 3D*: ya se puede girar y acercar mientras se reproduce (al
+      agarrarla se detiene y al soltarla sigue). También tiene vistas desde
+      arriba / inclinada / girar sola, camino de la presa y terreno
+      transparente.
 - [x] *Simulación 3D*: explicación en vivo en cada cuadro, leyenda más
       clara y controles sin encimarse. Pruebas de humo: 5 funciones × todas
       las opciones de dibujo + 20 ajustes extremos × 3 cámaras = 480 casos,
