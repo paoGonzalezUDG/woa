@@ -104,6 +104,28 @@ def test_simulacion_3d(app, nombre):
     xs = _arr(spec["data"][1]["x"])
     assert len(xs) == 30
     assert xs.min() >= FUNCIONES[nombre]["lb"] and xs.max() <= FUNCIONES[nombre]["ub"]
+    # Cada cuadro trae su explicacion (fase, conteos y novedad)
+    textos = [fr["layout"]["annotations"][0]["text"] for fr in spec["frames"]]
+    assert textos[0].startswith("<b>Inicio.</b>")
+    assert "Explorando" in textos[1] and "Afinando" in textos[-1]
+    assert all("rodean" in t for t in textos[1:])
+    # Controles en filas distintas: botones arriba de la barra de vueltas
+    assert spec["layout"]["updatemenus"][0]["y"] > spec["layout"]["sliders"][0]["y"] + 0.04
+
+
+def test_simulacion_3d_opciones(app):
+    at = elegir_funcion(app, "Ackley")
+    at.radio(key="cam_3d").set_value("Girar sola").run()
+    at.toggle(key="rastro_3d").set_value(True).run()
+    at.slider(key="opac_3d").set_value(50).run()
+    _sin_errores(at)
+    spec = json.loads(at.get("plotly_chart")[0].proto.spec)
+    assert spec["data"][0]["opacity"] == 0.5
+    assert spec["data"][3]["mode"] == "lines"          # camino de la presa
+    camaras = [fr["layout"]["scene"]["camera"]["eye"]["x"]
+               for fr in spec["frames"]]
+    assert len(set(round(c, 3) for c in camaras)) > 40  # la camara gira
+    assert all(fr["traces"] == [1, 2, 3] for fr in spec["frames"])
 
 
 def test_simulacion_3d_sin_escala_log(app):

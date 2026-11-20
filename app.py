@@ -415,33 +415,56 @@ QUE_VER_3D = {
              "no está en el centro sino en (3, 0.5), cerca de una orilla.",
 }
 VELOCIDAD_3D = {"Lenta": 300, "Normal": 150, "Rápida": 60}
+CAMARAS_3D = {"Desde arriba": "arriba", "Inclinada": "inclinada",
+              "Girar sola": "girar"}
 
 with tab_3d:
-    st.write("Las ballenas moviéndose sobre el terreno, en 3D. **Gíralo** "
-             "arrastrando con el mouse, **acércate** con la rueda y dale "
-             "**▶ Reproducir**. Para ver otra función, cámbiala en la barra "
-             "izquierda.")
+    st.write("Las ballenas moviéndose sobre el terreno, en 3D. Dale "
+             "**▶ Reproducir** abajo de la gráfica. Para ver otra función, "
+             "cámbiala en la barra izquierda.")
     aviso_2d()
     st.info(f"**{nombre}:** " + QUE_VER_3D[nombre])
-    c1, c2 = st.columns(2)
-    log_3d = c1.toggle(
-        "Aplanar los picos (escala log)", value=True,
-        help="Algunas funciones tienen picos altísimos (Rosenbrock llega a "
-             "millones) que aplastan todo lo demás. Así se ven los detalles "
-             "del fondo. Las ballenas siguen en el mismo lugar; solo cambia "
-             "la altura del dibujo.")
-    vel_3d = c2.select_slider("Velocidad", list(VELOCIDAD_3D), value="Normal")
+
+    with st.container(border=True):
+        st.markdown("**Cómo verla**")
+        c1, c2, c3 = st.columns([1.7, 1, 1])
+        cam_3d = c1.radio(
+            "Cámara", list(CAMARAS_3D), horizontal=True, key="cam_3d",
+            help="Mientras se reproduce no se puede girar con el mouse. "
+                 "**Desde arriba** se ve como un mapa; **Inclinada** se ven "
+                 "las montañas; **Girar sola** le da la vuelta al terreno "
+                 "mientras avanza. En pausa puedes girarla a tu gusto.")
+        vel_3d = c2.select_slider("Velocidad", list(VELOCIDAD_3D),
+                                  value="Normal")
+        opac_3d = c3.slider(
+            "Terreno transparente", 0, 70, 10, step=10, format="%d%%",
+            key="opac_3d",
+            help="Súbelo para ver las ballenas que quedan detrás de una "
+                 "montaña.")
+        c1, c2, _ = st.columns([1.7, 1, 1])
+        log_3d = c1.toggle(
+            "Aplanar los picos (escala log)", value=True,
+            help="Algunas funciones tienen picos altísimos (Rosenbrock llega "
+                 "a millones) que aplastan todo lo demás. Así se ven los "
+                 "detalles del fondo. Las ballenas siguen en el mismo lugar; "
+                 "solo cambia la altura del dibujo.")
+        rastro_3d = c2.toggle(
+            "Camino de la presa", value=False, key="rastro_3d",
+            help="Dibuja la línea que fue siguiendo la mejor ballena. Sirve "
+                 "para ver si llegó directo o si saltó de un valle a otro.")
+
     if not es_pesado(params):
         res_3d = corrida(nombre, 2, lb, ub, int(seed), 0.0, **params)
         with st.spinner("Preparando la simulación..."):
-            fig_3d = visual3d.figura_3d(cfg["f"], lb, ub, res_3d,
-                                        cfg["optimo_x"](2), log=log_3d,
-                                        ms=VELOCIDAD_3D[vel_3d])
+            fig_3d = visual3d.figura_3d(
+                cfg["f"], lb, ub, res_3d, cfg["optimo_x"](2), log=log_3d,
+                ms=VELOCIDAD_3D[vel_3d], camara=CAMARAS_3D[cam_3d],
+                rastro=rastro_3d, opacidad=1 - opac_3d / 100,
+                a_inicial=params["a_inicial"])
         st.plotly_chart(fig_3d, theme=None, key="fig_3d")
-        st.caption("Colores: :blue[azul = rodear], :orange[naranja = buscar], "
-                   ":green[verde = espiral], gris = inicio. La X amarilla es "
-                   "la mejor ballena y el rombo rojo, el mínimo real. Pasa el "
-                   "mouse sobre una ballena para ver su valor.")
+        st.caption("Pasa el mouse sobre una ballena para ver su valor. En "
+                   "pausa puedes girar la gráfica arrastrando y acercarte con "
+                   "la rueda del mouse.")
 
 # ------------------------------- Paso a paso --------------------------------
 @st.cache_data(show_spinner=False)

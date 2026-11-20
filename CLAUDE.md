@@ -21,9 +21,15 @@ Correr todo desde la raiz del proyecto.
 - `experimentos.py`: `PARAMS_DEFAULT`, `correr()`, `resumen()`, `barrido()`; `main()` genera `resultados/`.
 - `interfaz/paso_a_paso.py`: `woa_detallado()` replica woa.py anotando cada paso.
 - `interfaz/visual.py`: graficas/GIF con matplotlib + Pillow.
-- `interfaz/visual3d.py`: `figura_3d(f, lb, ub, res, optimo, log, ms)` -> figura
-  Plotly (superficie + ballenas, 80 cuadros animados; los frames solo
-  actualizan las trazas 1 y 2). Altura log10(1+f) para aplanar picos.
+- `interfaz/visual3d.py`: `figura_3d(f, lb, ub, res, optimo, log, ms, camara,
+  rastro, opacidad)` -> figura Plotly (superficie + ballenas, 80 cuadros; los
+  frames solo actualizan trazas 1, 2 y 3 si hay rastro). Altura log10(1+f).
+  Al reproducir NO se puede arrastrar (redraw en cada cuadro): por eso
+  camara "arriba"/"inclinada" con botones relayout, o "girar" (cada frame
+  trae su scene.camera). Arriba = ortografica; su zoom es aspectratio.
+  Cada frame trae tambien una annotation con la explicacion (fase segun a,
+  conteos, si mejoro la presa). Franjas en y: escena 0.21-1, explicacion,
+  botones 0.058, barra 0. Humo exhaustivo: 480 casos, 0 fallas.
 - Python del proyecto: `python` = 3.10 de Laragon; usar `python -m pip`
   (el `pip` suelto apunta a otro Python 3.13).
 - `app.py`: Streamlit, 9 pestanas: Empieza aqui (glosario), Una corrida,
