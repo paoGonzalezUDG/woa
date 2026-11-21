@@ -40,14 +40,23 @@ div[data-testid="stTabs"] div[data-testid="stTabs"] [data-testid="stTab"] p {
 div[data-testid="stTabs"] div[data-testid="stTabs"]
         .react-aria-SelectionIndicator { display: none; }
 .woa-cargando {
-    display: flex; align-items: center; gap: 0.7rem;
-    padding: 0.6rem 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem;
-    background: rgba(255, 75, 75, 0.12); font-size: 0.95rem; }
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.9rem 1.2rem 1.1rem; border-radius: 0.6rem;
+    margin-bottom: 0.6rem; font-size: 1.05rem;
+    background: #fff4e5; color: #4a2c00; border: 2px solid #ff9f1c; }
+.woa-cargando b { color: #b35c00; }
 .woa-rueda {
-    width: 1.1rem; height: 1.1rem; flex: none; border-radius: 50%;
-    border: 3px solid rgba(255, 75, 75, 0.25); border-top-color: #ff4b4b;
-    animation: woa-girar 0.8s linear infinite; }
+    width: 2rem; height: 2rem; flex: none; border-radius: 50%;
+    border: 4px solid #ffd8a8; border-top-color: #e8590c;
+    border-right-color: #e8590c;
+    animation: woa-girar 0.7s linear infinite; }
+.woa-barra {
+    position: absolute; left: 0; bottom: 0; height: 5px; width: 35%;
+    background: #e8590c; border-radius: 3px;
+    animation: woa-avanzar 1.3s ease-in-out infinite; }
 @keyframes woa-girar { to { transform: rotate(360deg); } }
+@keyframes woa-avanzar { 0% { left: -35%; } 100% { left: 100%; } }
 </style>""", unsafe_allow_html=True)
 
 CARPETA_APP = os.path.dirname(os.path.abspath(__file__))
@@ -284,9 +293,9 @@ st.caption("Ballenas virtuales buscando el punto más bajo de 5 funciones "
 cargando = st.empty()
 cargando.markdown(
     '<div class="woa-cargando"><div class="woa-rueda"></div>'
-    "<div><b>Cargando…</b> preparando las gráficas y animaciones. Puede "
+    "<div><b>⏳ Cargando…</b> preparando las gráficas y animaciones. Puede "
     "tardar unos segundos; cuando desaparezca este aviso, todo está listo."
-    "</div></div>", unsafe_allow_html=True)
+    '</div><div class="woa-barra"></div></div>', unsafe_allow_html=True)
 
 
 def parar():
