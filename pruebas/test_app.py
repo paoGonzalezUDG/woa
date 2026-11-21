@@ -57,22 +57,10 @@ def _spec_3d(at):
     assert len(iframes) == 1
     html = iframes[0].proto.srcdoc
     assert "plotly_relayouting" in html          # el JS para girar al reproducir
-    dec = json.JSONDecoder()
-
-    def leer(marca, n):
-        i = html.rindex(marca) + len(marca)       # la ultima: no la de plotly.js
-        valores = []
-        for _ in range(n):
-            i = html.index(",", i) + 1
-            while html[i].isspace():
-                i += 1
-            v, i = dec.raw_decode(html, i)
-            valores.append(v)
-        return valores
-
-    data, layout = leer("Plotly.newPlot(", 2)
-    frames, = leer("Plotly.addFrames(", 1)
-    return dict(data=data, layout=layout, frames=frames)
+    i = html.rindex("var fig = ") + len("var fig = ")
+    spec, _ = json.JSONDecoder().raw_decode(html, i)
+    return dict(data=spec["data"], layout=spec["layout"],
+                frames=spec["frames"])
 
 
 def boton(at, etiqueta, key=None):
@@ -114,6 +102,8 @@ def test_una_corrida_muestra_lo_mismo_que_el_algoritmo(app, nombre):
     assert at.metric[0].value == f"{r['mejor_f']:.2e}"
     dist = np.linalg.norm(r["mejor_x"] - cfg["optimo_x"](dim))
     assert at.metric[1].value == f"{dist:.2e}"
+    assert at.metric[2].label == "Tiempo de ejecución"
+    assert at.metric[2].value.endswith(" s")
 
 
 @pytest.mark.parametrize("nombre", FUNC)
@@ -132,6 +122,12 @@ def test_simulacion_3d(app, nombre):
     assert textos[0].startswith("<b>Inicio.</b>")
     assert "Explorando" in textos[1] and "Afinando" in textos[-1]
     assert all("rodean" in t for t in textos[1:])
+    # Al terminar la animacion, el titulo dice cuanto tardo el algoritmo
+    titulos = [fr["layout"]["title"]["text"] for fr in spec["frames"]]
+    assert "Terminó" in titulos[-1] and "tardó" in titulos[-1]
+    assert not any("Terminó" in t for t in titulos[:-1])
+    assert any("Tiempo de ejecución del algoritmo" in m.value
+               for m in at.markdown)
     # Controles en filas distintas: botones arriba de la barra de vueltas
     assert spec["layout"]["updatemenus"][0]["y"] > spec["layout"]["sliders"][0]["y"] + 0.04
 
@@ -291,6 +287,7 @@ def test_sesgo_al_centro_estadistica(app):
     _sin_errores(at)
     df = at.session_state["sesgo"][0]
     original, movida = df["mediana"].iloc[0], df["mediana"].iloc[1]
+    assert (df["tiempo_medio_s"] > 0).all()
     assert original < 1e-20 < movida
 
 

@@ -20,6 +20,15 @@ COLORES_REGLAS = np.array(["#1f77b4", "#ff7f0e", "#2ca02c"])
 COLOR_INICIAL = "#bbbbbb"
 
 
+def texto_tiempo(seg):
+    """Segundos -> texto corto para mostrar en pantalla (0.003 s, 1.25 s)."""
+    if seg < 0.01:
+        return f"{seg:.3f} s"
+    if seg < 60:
+        return f"{seg:.2f} s"
+    return f"{int(seg // 60)} min {seg % 60:.0f} s"
+
+
 # --------------------------------------------------------------------------
 # Fondo: curvas de nivel de una funcion de 2 variables
 # --------------------------------------------------------------------------

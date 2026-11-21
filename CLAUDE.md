@@ -25,7 +25,8 @@ Correr todo desde la raiz del proyecto.
   rastro, opacidad)` -> figura Plotly (superficie + ballenas, 80 cuadros; los
   frames solo actualizan trazas 1, 2 y 3 si hay rastro). Altura log10(1+f).
   Plotly ignora el mouse mientras anima (cualquier cambio de datos 3D lo
-  bloquea). `html_3d(fig)` arma una pagina con plotly.js adentro y JS
+  bloquea). `html_3d(fig)` arma una pagina con plotly.js adentro (dibuja hasta
+  que el iframe se ve: oculto mide textos en 0 y encima botones) y JS
   propio: al agarrar/rueda pausa, al soltar sigue, y copia la camara a
   gd.layout para que los cuadros no la regresen. app.py la muestra con
   `st.iframe` (no st.plotly_chart). camara "girar" = cada frame trae su
@@ -63,6 +64,9 @@ Correr todo desde la raiz del proyecto.
   mano en el reporte: si se edita el reporte, actualizarla.
   Plotly 6 serializa arreglos como {dtype, bdata}: usar `_arr()` de test_app.
 - Pestanas que corren solas usan `es_pesado()` (limite 200,000 movimientos).
+- Tiempo de ejecucion: `corrida()` (cacheada) agrega `res["tiempo"]`; formato
+  con `visual.texto_tiempo()`; `figura_3d(tiempo=)` lo pone en el titulo del
+  ultimo cuadro. Se mide fuera de woa.py (no tocarlo).
 - Entorno: Windows, Python 3.10, streamlit 1.65 (`st.image(width="stretch")`).
 - Repo propio en esta carpeta (remote woa.git). La carpeta padre
   `c:\laragon\www` es OTRO repo (mexware): no hacer commits ahi.

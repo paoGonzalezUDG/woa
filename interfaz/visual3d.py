@@ -9,8 +9,9 @@ import json
 
 import numpy as np
 import plotly.graph_objects as go
+from plotly.offline import get_plotlyjs
 
-from interfaz.visual import COLOR_INICIAL, COLORES_REGLAS
+from interfaz.visual import COLOR_INICIAL, COLORES_REGLAS, texto_tiempo
 
 REGLA_CORTA = ["rodear", "buscar", "espiral"]
 LEYENDA_REGLAS = ["Rodear: se acerca a la presa",
@@ -48,12 +49,13 @@ def _camara_giro(k, n):
 
 def figura_3d(f, lb, ub, res, optimo, log=True, n_cuadros=80, ms=150,
               n_malla=100, camara="arriba", rastro=False, opacidad=0.9,
-              a_inicial=2.0):
+              a_inicial=2.0, tiempo=None):
     """res: resultado de woa(..., guardar_posiciones=True) en 2 variables.
     a_inicial: el mismo de la corrida (solo para explicar la fase).
     camara: "arriba", "inclinada" o "girar" (da una vuelta al reproducir).
     rastro: dibuja el camino que siguio la mejor ballena (presa).
-    opacidad: del terreno (menos = se ven las ballenas de atras)."""
+    opacidad: del terreno (menos = se ven las ballenas de atras).
+    tiempo: segundos que tardo woa(); se anuncia en el ultimo cuadro."""
     g = np.linspace(lb, ub, n_malla)
     Z = np.array([[f(np.array([x, y])) for x in g] for y in g])
     H = _altura(Z, log)
@@ -97,8 +99,12 @@ def figura_3d(f, lb, ub, res, optimo, log=True, n_cuadros=80, ms=150,
             name="Camino de la presa", line=dict(color="#d4a000", width=5))
 
     def titulo(t):
-        return (f"<b>Vuelta {t} de {T}</b> · mejor valor encontrado = "
-                f"{res['curva'][t]:.2e}")
+        txt = (f"<b>Vuelta {t} de {T}</b> · mejor valor encontrado = "
+               f"{res['curva'][t]:.2e}")
+        if tiempo is not None and t == T and T > 0:
+            txt += (f" · <b><span style='color:#c0392b'>¡Terminó! El "
+                    f"algoritmo tardó {texto_tiempo(tiempo)}</span></b>")
+        return txt
 
     ancho = ub - lb
 
@@ -320,13 +326,43 @@ _JS_GIRAR = """
 
 def html_3d(fig):
     """Pagina HTML completa (con plotly.js adentro, funciona sin internet)
-    donde la grafica se puede girar y acercar aunque se este reproduciendo."""
+    donde la grafica se puede girar y acercar aunque se este reproduciendo.
+
+    Streamlit arma todas las pestanas aunque esten ocultas. Si plotly dibuja
+    con el iframe oculto, mide los textos en 0 (botones encimados, leyenda
+    cortada) y no lo corrige despues; por eso se espera a que se vea."""
     opciones = fig.layout.updatemenus[0].buttons[0].args[1]
-    js = _JS_GIRAR.replace("__OPCIONES__", json.dumps(opciones))
-    html = fig.to_html(full_html=True, include_plotlyjs=True, post_script=js,
-                       auto_play=False,
-                       div_id="simulacion_3d", default_width="100%",
-                       default_height=f"{fig.layout.height}px",
-                       config=dict(displaylogo=False))
-    return html.replace("<head>", "<head><style>html, body {margin: 0; "
-                        "background: white;}</style>", 1)
+    js = (_JS_GIRAR.replace("__OPCIONES__", json.dumps(opciones))
+          .replace("{plot_id}", "simulacion_3d"))
+    # "</" escapado para que ningun texto cierre el <script> antes de tiempo
+    spec = fig.to_json().replace("</", r"<\/")
+    config = json.dumps(dict(displaylogo=False, responsive=True))
+    return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>html, body {{margin: 0; background: white;}}</style></head>
+<body>
+<div id="simulacion_3d" style="width:100%; height:{fig.layout.height}px"></div>
+<script type="text/javascript">{get_plotlyjs()}</script>
+<script type="text/javascript">
+var fig = {spec};
+function dibujar() {{
+  Plotly.newPlot('simulacion_3d', fig.data, fig.layout, {config})
+    .then(function () {{ return Plotly.addFrames('simulacion_3d', fig.frames || []); }})
+    .then(function () {{ {js} }});
+}}
+function seVe() {{
+  var r = document.getElementById('simulacion_3d').getBoundingClientRect();
+  return r.width > 0 && r.height > 0;
+}}
+(function esperar() {{
+  if (seVe()) {{ dibujar(); return; }}
+  var listo = false;
+  function intentar() {{
+    if (listo || !seVe()) return;
+    listo = true; clearInterval(reloj); dibujar();
+  }}
+  var reloj = setInterval(intentar, 250);
+  window.addEventListener('resize', intentar);
+}})();
+</script>
+</body></html>"""

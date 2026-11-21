@@ -22,6 +22,12 @@
       cada tipo: rodear, buscar y espiral) para poder explicarlo.
 - [ ] (Opcional) Tomar capturas de la *Simulación 3D* o de *Comparar* si
       quieren figuras extra en el reporte.
+- [ ] **Tiempo de ejecución** (sugerencia del profe, 21 de noviembre de
+      2026): la app ya lo muestra en *Una corrida*, *Simulación 3D* (al
+      terminar la animación y abajo de ella), *Comparar*, *Sesgo al centro*
+      y *Muchas corridas*; las tablas de `resultados/` ya traían
+      `tiempo_medio_s`. Falta comentarlo en el reporte (por ejemplo: más
+      ballenas o más vueltas = más tiempo; ¿vale la pena?).
 
 ## Técnico
 

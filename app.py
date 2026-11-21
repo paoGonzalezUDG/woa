@@ -8,6 +8,7 @@ idea es que la app sirva para entender el algoritmo y escribir el reporte.
 import io
 import os
 import re
+import time
 import zipfile
 
 import matplotlib.pyplot as plt
@@ -187,9 +188,13 @@ def funcion_desplazada(nom, s):
 @st.cache_data(show_spinner=False)
 def corrida(nom, d, lb, ub, seed, s, n_ballenas, max_iter, a_inicial, b,
             p_umbral):
-    return woa(funcion_desplazada(nom, s), lb, ub, d, seed=seed,
-               guardar_posiciones=True, n_ballenas=n_ballenas,
-               max_iter=max_iter, a_inicial=a_inicial, b=b, p_umbral=p_umbral)
+    """Como woa(), pero guarda en 'tiempo' los segundos que tardo. Queda en
+    cache: si se repite la misma corrida, se reporta el tiempo de la primera."""
+    t0 = time.perf_counter()
+    res = woa(funcion_desplazada(nom, s), lb, ub, d, seed=seed,
+              guardar_posiciones=True, n_ballenas=n_ballenas,
+              max_iter=max_iter, a_inicial=a_inicial, b=b, p_umbral=p_umbral)
+    return {**res, "tiempo": time.perf_counter() - t0}
 
 
 def armar_casos(nom, lb, ub, seed, configs):
@@ -200,7 +205,8 @@ def armar_casos(nom, lb, ub, seed, configs):
         res = corrida(nom, 2, lb, ub, seed, s, **p)
         casos.append(dict(f=funcion_desplazada(nom, s), lb=lb, ub=ub, res=res,
                           optimo=FUNCIONES[nom]["optimo_x"](2) + s,
-                          titulo=titulo))
+                          titulo=f"{titulo} "
+                                 f"({visual.texto_tiempo(res['tiempo'])})"))
     return casos
 
 
@@ -231,6 +237,24 @@ def es_pesado(*lista_params):
                "ballenas o las vueltas en la barra izquierda (máximo "
                f"{LIMITE_MOVIMIENTOS:,}).")
     return True
+
+
+AYUDA_TIEMPO = ("Cuánto tardó la computadora en hacer todas las vueltas del "
+                "algoritmo (sin contar lo que tarda en dibujar). Cambia un "
+                "poco cada vez y de una computadora a otra; sirve para "
+                "comparar ajustes en la misma máquina.")
+
+
+def comparar_tiempos(casos):
+    """Texto con el tiempo de cada caso y cuantas veces tardo mas uno."""
+    ts = [c["res"]["tiempo"] for c in casos]
+    partes = [f"**{c['titulo'].rsplit(' (', 1)[0]}**: "
+              f"{visual.texto_tiempo(t)}" for c, t in zip(casos, ts)]
+    txt = "⏱ Tiempo de ejecución · " + " · ".join(partes)
+    lento, rapido = max(ts), min(ts)
+    if rapido > 0 and lento / rapido >= 1.2:
+        txt += f" (uno tardó {lento / rapido:.1f} veces lo del otro)"
+    return txt
 
 
 # ------------------------------- Empieza aqui -------------------------------
@@ -338,15 +362,17 @@ with tab1:
     st.write("Corre el algoritmo **una vez**, de principio a fin, con los "
              "ajustes de la izquierda.")
     if st.button("Correr", type="primary"):
+        t0 = time.perf_counter()
         res = woa(cfg["f"], lb, ub, int(dim), seed=int(seed),
                   guardar_posiciones=True, **params)
+        res["tiempo"] = time.perf_counter() - t0
         st.session_state["res"] = (res, nombre, int(dim), lb, ub)
 
     if "res" in st.session_state:
         res, nom_r, dim_r, lb_r, ub_r = st.session_state["res"]
         cfg_r = FUNCIONES[nom_r]
         x_opt = cfg_r["optimo_x"](dim_r)
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         c1.metric("Mejor valor encontrado", f"{res['mejor_f']:.2e}",
                   help="Lo más bajo que encontraron. Lo ideal es 0. "
                        "1.5e-15 = 0.0000000000000015, o sea, casi cero.")
@@ -354,6 +380,8 @@ with tab1:
                   f"{np.linalg.norm(res['mejor_x'] - x_opt):.2e}",
                   help="Qué tan lejos quedó el mejor punto encontrado del "
                        "verdadero mínimo de la función.")
+        c3.metric("Tiempo de ejecución", visual.texto_tiempo(res["tiempo"]),
+                  help=AYUDA_TIEMPO)
         st.caption(f"{nom_r} con {dim_r} variables. Mejor punto encontrado: "
                    f"`{np.array2string(res['mejor_x'], precision=4)}`")
 
@@ -362,7 +390,9 @@ with tab1:
             fig, ax = plt.subplots(figsize=(5, 4.5))
             ax.semilogy(res["curva"] + 1e-300)
             ax.set_xlabel("Vuelta"); ax.set_ylabel("Mejor valor (escala log)")
-            ax.set_title("Cómo fue mejorando"); ax.grid(alpha=.3)
+            ax.set_title("Cómo fue mejorando (tardó "
+                         f"{visual.texto_tiempo(res['tiempo'])})")
+            ax.grid(alpha=.3)
             mostrar(fig)
             st.caption("La línea solo baja o se queda igual: la mejor "
                        "ballena nunca empeora.")
@@ -456,14 +486,26 @@ with tab_3d:
     if not es_pesado(params):
         res_3d = corrida(nombre, 2, lb, ub, int(seed), 0.0, **params)
         with st.spinner("Preparando la simulación..."):
+            t0 = time.perf_counter()
             fig_3d = visual3d.figura_3d(
                 cfg["f"], lb, ub, res_3d, cfg["optimo_x"](2), log=log_3d,
                 ms=VELOCIDAD_3D[vel_3d], camara=CAMARAS_3D[cam_3d],
                 rastro=rastro_3d, opacidad=1 - opac_3d / 100,
-                a_inicial=params["a_inicial"])
+                a_inicial=params["a_inicial"], tiempo=res_3d["tiempo"])
+            t_dibujo = time.perf_counter() - t0
         # Se muestra como pagina propia (no st.plotly_chart) para poder agregar
         # el JavaScript que deja girar la grafica mientras se reproduce.
         st.iframe(visual3d.html_3d(fig_3d), height=fig_3d.layout.height + 10)
+        st.markdown(
+            f"⏱ **Tiempo de ejecución del algoritmo:** "
+            f"{visual.texto_tiempo(res_3d['tiempo'])} para "
+            f"{params['max_iter']} vueltas con {params['n_ballenas']} "
+            f"ballenas · preparar la simulación tardó "
+            f"{visual.texto_tiempo(t_dibujo)}.",
+            help=AYUDA_TIEMPO + " La animación va más lento a propósito "
+                 "para que se pueda ver; el algoritmo en sí es mucho más "
+                 "rápido. Al llegar a la última vuelta, el título también lo "
+                 "dice.")
         st.caption("Gírala arrastrando con el mouse y acércate con la rueda, "
                    "aunque se esté reproduciendo: mientras la tienes agarrada "
                    "se detiene y al soltarla sigue. Pasa el mouse sobre una "
@@ -602,6 +644,7 @@ with tab2:
                              key="frac_c") / 100
             mostrar(visual.figura_paneles(casos, frac))
 
+        st.markdown(comparar_tiempos(casos), help=AYUDA_TIEMPO)
         st.markdown("#### ¿Qué movimiento usan con el tiempo?")
         mostrar(visual.figura_reglas(casos, [dict(c[0])["a_inicial"]
                                              for c in configs]))
@@ -662,9 +705,11 @@ with tab3:
             mostrar(fig)
         with col_b:
             fig, ax = plt.subplots(figsize=(5.5, 4))
+            seg = dict(zip(df[par_r], df["tiempo_medio_s"]))
             for v in vals:
                 ax.semilogy(np.mean(cur[v], axis=0) + 1e-300,
-                            label=f"{CORTO_PARAM[par_r]} = {v}")
+                            label=f"{CORTO_PARAM[par_r]} = {v} "
+                                  f"({visual.texto_tiempo(seg[v])} c/u)")
             ax.set_xlabel("Vuelta"); ax.set_ylabel("Mejor valor (promedio)")
             ax.legend(fontsize=8); ax.set_title("Cómo fue mejorando")
             mostrar(fig)
@@ -709,6 +754,7 @@ with tab4:
             frac = st.slider("¿En qué momento? (% del recorrido)", 0, 100,
                              30, key="frac_s") / 100
             mostrar(visual.figura_paneles(casos_s, frac))
+        st.markdown(comparar_tiempos(casos_s), help=AYUDA_TIEMPO)
     with st.expander("¿Por qué pasa esto?"):
         st.markdown("""
 En las fórmulas de rodear y buscar, la posición de la mejor ballena se
@@ -732,9 +778,11 @@ muchísimo. Si no (Rosenbrock, Beale), estorba. Esto explica por qué le fue
             for etiqueta, sv in (("Original", 0.0), (f"Movida {s:g}", s)):
                 f_s = funcion_desplazada(nombre, sv)
                 opt = cfg["optimo_x"](d) + sv
-                fin, dist_opt, dist_0 = [], [], []
+                fin, dist_opt, dist_0, tiempos = [], [], [], []
                 for k in range(int(n_s)):
+                    t0 = time.perf_counter()
                     r = woa(f_s, lb, ub, d, seed=k, **params)
+                    tiempos.append(time.perf_counter() - t0)
                     fin.append(r["mejor_f"])
                     dist_opt.append(np.linalg.norm(r["mejor_x"] - opt))
                     dist_0.append(np.linalg.norm(r["mejor_x"]))
@@ -742,7 +790,8 @@ muchísimo. Si no (Rosenbrock, Beale), estorba. Esto explica por qué le fue
                 filas.append(dict(caso=etiqueta, mediana=np.median(fin),
                                   media=np.mean(fin), peor=np.max(fin),
                                   dist_optimo=np.mean(dist_opt),
-                                  dist_centro=np.mean(dist_0)))
+                                  dist_centro=np.mean(dist_0),
+                                  tiempo_medio_s=np.mean(tiempos)))
         st.session_state["sesgo"] = (pd.DataFrame(filas), datos, nombre, d)
 
     if "sesgo" in st.session_state:
