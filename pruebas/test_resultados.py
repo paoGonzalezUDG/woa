@@ -48,14 +48,53 @@ def test_regenerar_experimentos_da_los_mismos_numeros(tmp_path):
                 assert np.allclose(a[col], b[col], rtol=1e-9, atol=0), (rel, col)
     pngs = [os.path.join(r, x) for r, _, xs in os.walk(nuevos) for x in xs
             if x.endswith(".png")]
-    assert len(pngs) == 27
+    assert len(pngs) == 30
+
+
+def test_panorama_cuadra_con_los_csv():
+    """finales.csv (una fila por corrida) da las mismas medianas que los CSV
+    de cada funcion."""
+    df = pd.read_csv(os.path.join(RES, "7_panorama", "finales.csv"))
+    assert len(df) == 5 * 17 * 30
+    for num, nom in enumerate(["Rastrigin", "Ackley", "Sphere", "Rosenbrock",
+                               "Beale"], start=1):
+        for par in ["n_ballenas", "max_iter", "a_inicial", "b", "p_umbral"]:
+            tabla = pd.read_csv(os.path.join(RES, f"{num}_{nom}", f"{par}.csv"))
+            d = df[(df.funcion == nom) & (df.parametro == par)]
+            med = d.groupby("valor")["mejor_f"].median()
+            assert np.allclose(med.to_numpy(), tabla["mediana"].to_numpy(),
+                               rtol=1e-9, atol=0), (nom, par)
+
+
+def test_combinaciones_cuadran():
+    """resumen.csv cuadra con finales.csv y sus lugares son reproducibles."""
+    import sys
+    sys.path.insert(0, RAIZ)
+    from experimentos import (PARAMS_DEFAULT, combinaciones,
+                              ordenar_combinaciones)
+    car = os.path.join(RES, "8_combinaciones")
+    res = pd.read_csv(os.path.join(car, "resumen.csv"))
+    cru = pd.read_csv(os.path.join(car, "finales.csv"))
+    claves = list(PARAMS_DEFAULT)
+    assert len(res) == 5 * len(combinaciones())
+    assert len(cru) == len(res) * 25
+    med = cru.groupby(["funcion"] + claves)["mejor_f"].median()
+    r = res.set_index(["funcion"] + claves)["mediana"]
+    assert np.allclose(med.loc[r.index].to_numpy(), r.to_numpy(),
+                       rtol=1e-9, atol=0)
+    # ordenar otra vez da los mismos lugares
+    otra = ordenar_combinaciones(res.drop(columns="lugar"))
+    assert list(otra["lugar"]) == list(res["lugar"])
+    for nom in res.funcion.unique():
+        assert res[res.funcion == nom].lugar.min() == 1
 
 
 def test_estructura_de_resultados():
     carpetas = sorted(d for d in os.listdir(RES)
                       if os.path.isdir(os.path.join(RES, d)))
     assert carpetas == ["0_base", "1_Rastrigin", "2_Ackley", "3_Sphere",
-                        "4_Rosenbrock", "5_Beale", "6_sesgo_centro"]
+                        "4_Rosenbrock", "5_Beale", "6_sesgo_centro",
+                        "7_panorama", "8_combinaciones"]
     for d in carpetas[1:6]:
         for p in ["n_ballenas", "max_iter", "a_inicial", "b", "p_umbral"]:
             for ext in ("csv", "png"):
@@ -64,6 +103,8 @@ def test_estructura_de_resultados():
 
 def test_csv_tienen_sentido():
     for rel in _csvs(RES):
+        if rel.startswith("7_panorama") or rel.endswith("finales.csv"):
+            continue                          # una fila por corrida, aparte
         df = pd.read_csv(os.path.join(RES, rel))
         assert (df["mejor"] <= df["mediana"]).all(), rel
         assert (df["mediana"] <= df["peor"]).all(), rel

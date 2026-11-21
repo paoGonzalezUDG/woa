@@ -121,6 +121,8 @@ Colores en todas las gráficas: **azul** = rodear, **naranja** = buscar,
 | **Comparar** | Dos valores de un ajuste lado a lado, con animación. | Entender **por qué** un ajuste cambia el resultado. |
 | **Muchas corridas** | Un ajuste probado muchas veces: tabla, gráficas y descarga en CSV. | Sacar datos confiables. |
 | **Sesgo al centro** | La misma función con el mínimo movido de lugar. | El hallazgo más interesante (ver el reporte de referencia). |
+| **Todas las cajas** | Todos los experimentos en una sola gráfica interactiva: filas = funciones, columnas = ajustes. Se puede ver una función más grande y cada corrida como puntito. | **Comparar todos los ajustes de un vistazo** (la figura resumen del reporte). |
+| **Mejor combinación** | 81 combinaciones de ajustes (a, b, p y cómo repartir ballenas/vueltas con el mismo esfuerzo), 25 corridas cada una: la mejor de cada función, qué ajuste importa más y si la ganadora de una función sirve para las demás. | **Decidir qué ajustes convienen en cada función.** |
 | **Resultados** | Las gráficas y tablas de la carpeta `resultados/`, con botones de descarga (también todo en un .zip). | Ver y descargar los resultados para el reporte. |
 | **Reporte** | El reporte de referencia completo, con sus gráficas. | Leer la guía del reporte sin salir de la app. |
 
@@ -165,7 +167,9 @@ resultados/
 ├── 3_Sphere/        n_ballenas, max_iter, a_inicial, b, p_umbral
 ├── 4_Rosenbrock/
 ├── 5_Beale/
-└── 6_sesgo_centro/  La misma función con el mínimo movido de lugar
+├── 6_sesgo_centro/  La misma función con el mínimo movido de lugar
+├── 7_panorama/      TODAS las cajas en una figura (funciones × parámetros) + cada corrida en CSV
+└── 8_combinaciones/ Varios ajustes a la vez: la mejor combinación de cada función
 ```
 
 También se pueden ver en la app, pestaña **Resultados**.

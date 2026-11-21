@@ -4,6 +4,8 @@ resultados del reporte (tablas CSV y graficas PNG en la carpeta resultados/).
 
 Uso:  python experimentos.py            (corre todo; tarda unos minutos)
       python experimentos.py --rapido   (menos corridas, para probar)
+      python experimentos.py --solo-panorama  (solo la figura 7_panorama)
+      python experimentos.py --solo-combinaciones  (8_combinaciones, ~15 min)
 """
 import argparse
 import os
@@ -118,6 +120,261 @@ def experimento_sesgo(n, plt):
     print("sesgo al centro listo")
 
 
+# Nombres para la figura panorama (texto que se ve, con acentos)
+NOMBRES_PAR = {"n_ballenas": "Ballenas", "max_iter": "Vueltas",
+               "a_inicial": "a inicial", "b": "b (espiral)",
+               "p_umbral": "p (umbral)"}
+
+
+def figura_panorama(finales, plt, ruta):
+    """Una sola figura con TODAS las cajas: filas = funciones, columnas =
+    parametros. finales[nombre][par][valor] = arreglo de mejores valores.
+    Escala log por fila (misma escala en toda la fila para comparar
+    parametros); los ceros exactos se dibujan en el piso y se marcan "0"."""
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+    nombres = list(finales)
+    pars = list(BARRIDOS)
+    fig, axs = plt.subplots(len(nombres), len(pars), sharey="row",
+                            figsize=(15, 3.0 * len(nombres)))
+    for i, nombre in enumerate(nombres):
+        todos = np.concatenate([finales[nombre][p][v] for p in pars
+                                for v in BARRIDOS[p]])
+        pos = todos[todos > 0]
+        piso = 10.0 ** (np.floor(np.log10(pos.min())) - 1) if len(pos) else 1e-16
+        hay_ceros = (todos <= 0).any()
+        for j, par in enumerate(pars):
+            ax = axs[i, j]
+            vals = BARRIDOS[par]
+            datos = [np.maximum(finales[nombre][par][v], piso) for v in vals]
+            cajas = ax.boxplot(datos, tick_labels=[f"{v:g}" for v in vals],
+                               patch_artist=True, showmeans=True,
+                               widths=0.6,
+                               meanprops=dict(marker="D", markersize=5,
+                                              markerfacecolor="#d62728",
+                                              markeredgecolor="white"),
+                               medianprops=dict(color="black", linewidth=1.5),
+                               flierprops=dict(marker="o", markersize=3,
+                                               alpha=0.5))
+            for k, (v, caja) in enumerate(zip(vals, cajas["boxes"]), start=1):
+                por_defecto = v == PARAMS_DEFAULT[par]
+                caja.set_facecolor("#9ecae1" if por_defecto else "white")
+                if por_defecto:   # franja de fondo: se ve aunque la caja sea 0
+                    ax.axvspan(k - 0.45, k + 0.45, color="#deebf7", zorder=0)
+            ax.set_yscale("log")
+            ax.grid(axis="y", alpha=0.3)
+            if i == 0:
+                ax.set_title(NOMBRES_PAR[par], fontsize=12, fontweight="bold")
+            if i == len(nombres) - 1:
+                ax.set_xlabel("valor probado")
+        ax0 = axs[i, 0]
+        ax0.set_ylabel(f"{nombre}\nmejor valor final", fontsize=11)
+        if hay_ceros:
+            ax0.set_ylim(bottom=piso / 3)
+            ax0.axhline(piso, color="gray", lw=0.8, ls=":")
+            for ax in axs[i]:
+                ax.axhline(piso, color="gray", lw=0.8, ls=":")
+            ax0.annotate("0 exacto", (0, piso), xycoords=("axes fraction", "data"),
+                         xytext=(-4, 0), textcoords="offset points",
+                         ha="right", va="center", fontsize=8, color="gray")
+    leyenda = [Patch(facecolor="#9ecae1", edgecolor="black",
+                     label="valor por defecto (los demás ajustes fijos)"),
+               Line2D([], [], color="black", lw=1.5, label="mediana"),
+               Line2D([], [], marker="D", ls="", markerfacecolor="#d62728",
+                      markeredgecolor="white", markersize=7, label="media"),
+               Line2D([], [], marker="o", ls="", color="black", alpha=0.5,
+                      markersize=4, label="corrida atípica")]
+    fig.legend(handles=leyenda, loc="upper center", ncol=4, fontsize=10,
+               bbox_to_anchor=(0.5, 0.995), frameon=False)
+    fig.suptitle("Efecto de cada ajuste en las 5 funciones (30 corridas por "
+                 "caja; más abajo = mejor; escala log)", y=1.025, fontsize=13)
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=130, bbox_inches="tight")
+    plt.close(fig)
+
+
+def guardar_panorama(finales, plt, carpeta="resultados/7_panorama"):
+    """finales.csv (una fila por corrida, lo lee la app) + cajas.png."""
+    os.makedirs(carpeta, exist_ok=True)
+    filas = [dict(funcion=nom, parametro=par, valor=v, corrida=k,
+                  mejor_f=float(x))
+             for nom, d in finales.items() for par, vals in d.items()
+             for v, arr in vals.items() for k, x in enumerate(arr)]
+    pd.DataFrame(filas).to_csv(f"{carpeta}/finales.csv", index=False)
+    figura_panorama(finales, plt, f"{carpeta}/cajas.png")
+
+
+def experimento_panorama(n, plt):
+    """Corre otra vez los barridos (sin guardar CSV) solo para la figura."""
+    finales = {}
+    for nombre in FUNCIONES:
+        finales[nombre] = {par: barrido(nombre, par, vals, n_corridas=n)[1]
+                           for par, vals in BARRIDOS.items()}
+        print(nombre, "listo")
+    guardar_panorama(finales, plt)
+
+
+# Combinaciones: todas las de a, b y p con el MISMO esfuerzo total
+# (ballenas x vueltas = 6000 movimientos), repartido de 3 maneras.
+REPARTOS = [(10, 600), (30, 200), (60, 100)]
+N_COMBINACIONES = 25        # corridas por combinacion
+
+
+def combinaciones():
+    return [dict(n_ballenas=nb, max_iter=mi, a_inicial=a, b=b, p_umbral=p)
+            for nb, mi in REPARTOS for a in BARRIDOS["a_inicial"]
+            for b in BARRIDOS["b"] for p in BARRIDOS["p_umbral"]]
+
+
+def ordenar_combinaciones(df):
+    """Lugar dentro de cada funcion: menor mediana gana; si empatan, menor
+    media y luego menor peor. Si las tres empatan (ej. todas sus corridas
+    llegaron a 0 exacto) comparten lugar (1, 1, 1, 4, ...)."""
+    df = df.sort_values(["funcion", "mediana", "media", "peor"],
+                        kind="stable").reset_index(drop=True)
+    lugar, previo, pos = [], None, 0
+    for f, me, mu, pe in zip(df["funcion"], df["mediana"], df["media"],
+                             df["peor"]):
+        pos = 1 if previo is None or previo[0] != f else pos + 1
+        actual = (f, me, mu, pe)
+        lugar.append(lugar[-1] if actual == previo else pos)
+        previo = actual
+    df["lugar"] = lugar
+    return df
+
+
+def es_default(fila):
+    return all(np.isclose(fila[k], v) for k, v in PARAMS_DEFAULT.items())
+
+
+def texto_combo(fila):
+    return (f"{int(fila['n_ballenas'])}x{int(fila['max_iter'])}, "
+            f"a={fila['a_inicial']:g}, b={fila['b']:g}, p={fila['p_umbral']:g}")
+
+
+def experimento_combinaciones(n, plt, carpeta="resultados/8_combinaciones"):
+    os.makedirs(carpeta, exist_ok=True)
+    combos = combinaciones()
+    crudos, filas = [], []
+    for nombre in FUNCIONES:
+        for c in combos:
+            fin, _, tie = correr(nombre, n_corridas=n, **c)
+            filas.append({"funcion": nombre, **c, **resumen(fin, tie)})
+            crudos += [{"funcion": nombre, **c, "corrida": k,
+                        "mejor_f": float(x)} for k, x in enumerate(fin)]
+        print(nombre, "combinaciones listo")
+    res = ordenar_combinaciones(pd.DataFrame(filas))
+    res.to_csv(f"{carpeta}/resumen.csv", index=False)
+    crudo = pd.DataFrame(crudos)
+    crudo.to_csv(f"{carpeta}/finales.csv", index=False)
+    figuras_combinaciones(res, crudo, plt, carpeta)
+
+
+def rehacer_figuras_combinaciones(plt, carpeta="resultados/8_combinaciones"):
+    """Vuelve a ordenar y dibujar desde los CSV (sin correr nada)."""
+    res = ordenar_combinaciones(pd.read_csv(f"{carpeta}/resumen.csv")
+                                .drop(columns="lugar", errors="ignore"))
+    res.to_csv(f"{carpeta}/resumen.csv", index=False)
+    figuras_combinaciones(res, pd.read_csv(f"{carpeta}/finales.csv"), plt,
+                          carpeta)
+
+
+def figuras_combinaciones(res, crudo, plt, carpeta):
+    nombres = list(FUNCIONES)
+    claves = list(PARAMS_DEFAULT)
+    # 1) Cajas: las 5 mejores de cada funcion + la de por defecto
+    fig, axs = plt.subplots(1, len(nombres), figsize=(18, 5))
+    for ax, nom in zip(axs, nombres):
+        r = res[res.funcion == nom]
+        empatadas = int((r.lugar == 1).sum())
+        top = r.head(5)
+        dfl = r[r.apply(es_default, axis=1)]
+        sel = pd.concat([top, dfl]).drop_duplicates(subset=claves)
+        datos, etiquetas, colores = [], [], []
+        for _, f in sel.iterrows():
+            m = np.ones(len(crudo), bool)
+            for k in claves:
+                m &= np.isclose(crudo[k], f[k])
+            y = crudo.loc[m & (crudo.funcion == nom), "mejor_f"].to_numpy()
+            datos.append(y)
+            etiquetas.append(
+                f"#{int(f['lugar'])}\n{int(f['n_ballenas'])}x"
+                f"{int(f['max_iter'])}\na={f['a_inicial']:g}\nb={f['b']:g}"
+                f"\np={f['p_umbral']:g}")
+            colores.append("#9ecae1" if es_default(f) else "white")
+        pos = np.concatenate(datos)
+        pos = pos[pos > 0]
+        piso = 10.0 ** (np.floor(np.log10(pos.min())) - 1) if len(pos) else 1e-16
+        cajas = ax.boxplot([np.maximum(d, piso) for d in datos],
+                           patch_artist=True, showmeans=True, widths=0.6,
+                           meanprops=dict(marker="D", markersize=5,
+                                          markerfacecolor="#d62728",
+                                          markeredgecolor="white"),
+                           medianprops=dict(color="black", linewidth=1.5),
+                           flierprops=dict(marker="o", markersize=3, alpha=0.5))
+        for k, (caja, col) in enumerate(zip(cajas["boxes"], colores), 1):
+            caja.set_facecolor(col)
+            if col != "white":    # franja: se ve aunque la caja sea plana
+                ax.axvspan(k - 0.45, k + 0.45, color="#deebf7", zorder=0)
+        ax.set_xticks(range(1, len(etiquetas) + 1), etiquetas, fontsize=7.5)
+        ax.set_yscale("log")
+        if (np.concatenate(datos) <= 0).any():   # piso = "0" en el eje
+            alto = max(np.concatenate(datos).max(), piso * 100)
+            ks = np.arange(np.ceil(np.log10(piso)) + 1,
+                           np.floor(np.log10(alto)) + 1)
+            ks = ks[::max(1, int(np.ceil(len(ks) / 5)))]
+            ax.axhline(piso, color="gray", lw=0.8, ls=":")
+            ax.set_yticks([piso] + [10.0 ** k for k in ks],
+                          ["0"] + [f"$10^{{{int(k)}}}$" for k in ks])
+            ax.minorticks_off()
+            ax.set_ylim(piso / 3, alto * 3)
+        ax.grid(axis="y", alpha=0.3)
+        ax.set_title(nom + (f"\n({empatadas} empatadas en 1er lugar)"
+                            if empatadas > 1 else ""), fontweight="bold")
+    axs[0].set_ylabel("mejor valor final (log)")
+    fig.suptitle("Las 5 mejores combinaciones de cada función (azul = la de "
+                 "por defecto, con su lugar). Mismo esfuerzo: 6000 movimientos",
+                 fontsize=12)
+    fig.tight_layout()
+    fig.savefig(f"{carpeta}/mejores.png", dpi=130, bbox_inches="tight")
+    plt.close(fig)
+
+    # 2) Cruce: la ganadora de cada funcion, ¿en que lugar queda en las demas?
+    lugares = np.zeros((len(nombres) + 1, len(nombres)), int)
+    filas_txt = []
+    ganadoras = [res[(res.funcion == nom) & (res.lugar == 1)].iloc[0]
+                 for nom in nombres]
+    dfl = res[res.apply(es_default, axis=1)].iloc[0]
+    for i, g in enumerate(ganadoras + [dfl]):
+        n_emp = int(((res.funcion == g["funcion"]) & (res.lugar == 1)).sum())
+        extra = (f" (empata con {n_emp - 1})"
+                 if i < len(nombres) and n_emp > 1 else "")
+        filas_txt.append(("Por defecto: " if i == len(nombres) else
+                          f"Mejor en {nombres[i]}{extra}: ") + texto_combo(g))
+        for j, nom in enumerate(nombres):
+            r = res[res.funcion == nom]
+            m = np.ones(len(r), bool)
+            for k in claves:
+                m &= np.isclose(r[k], g[k])
+            lugares[i, j] = int(r.loc[m, "lugar"].iloc[0])
+    total = len(res) // len(nombres)
+    fig, ax = plt.subplots(figsize=(11, 4.2))
+    ax.imshow(lugares, cmap="RdYlGn_r", vmin=1, vmax=total, aspect="auto")
+    for i in range(lugares.shape[0]):
+        for j in range(lugares.shape[1]):
+            ax.text(j, i, f"{lugares[i, j]}", ha="center", va="center",
+                    fontsize=11, fontweight="bold" if lugares[i, j] == 1
+                    else "normal")
+    ax.set_xticks(range(len(nombres)), nombres)
+    ax.set_yticks(range(len(filas_txt)), filas_txt, fontsize=9)
+    ax.xaxis.tick_top()
+    ax.set_title(f"Lugar de cada combinación en cada función (1 = la mejor, "
+                 f"{total} = la peor)", pad=28)
+    fig.tight_layout()
+    fig.savefig(f"{carpeta}/cruce.png", dpi=130, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main():
     import matplotlib
     matplotlib.use("Agg")
@@ -128,10 +385,21 @@ def main():
                     help="5 corridas en vez de 30 (solo para probar)")
     ap.add_argument("--solo-sesgo", action="store_true",
                     help="correr solo el experimento de sesgo al centro")
+    ap.add_argument("--solo-panorama", action="store_true",
+                    help="solo la figura con todas las cajas (7_panorama)")
+    ap.add_argument("--solo-combinaciones", action="store_true",
+                    help="solo el experimento de combinaciones (~15 min)")
     args = ap.parse_args()
+    n_comb = 5 if args.rapido else N_COMBINACIONES
     n = 5 if args.rapido else 30
     if args.solo_sesgo:
         experimento_sesgo(n, plt)
+        return
+    if args.solo_panorama:
+        experimento_panorama(n, plt)
+        return
+    if args.solo_combinaciones:
+        experimento_combinaciones(n_comb, plt)
         return
     # Estructura: resultados/0_base/ y una carpeta por funcion, numeradas en
     # el orden de Wikipedia (1_Rastrigin, 2_Ackley, ...).
@@ -152,11 +420,13 @@ def main():
     print("base listo")
 
     # 2) Barridos de parametros por funcion
+    todos_finales = {}
     for num, nombre in enumerate(FUNCIONES, start=1):
         carpeta = f"resultados/{num}_{nombre}"
         os.makedirs(carpeta, exist_ok=True)
         for par, vals in BARRIDOS.items():
             df, fin_d, cur_d = barrido(nombre, par, vals, n_corridas=n)
+            todos_finales.setdefault(nombre, {})[par] = fin_d
             df.to_csv(f"{carpeta}/{par}.csv", index=False)
             fig, ax = plt.subplots(1, 2, figsize=(11, 4))
             ax[0].boxplot([fin_d[v] for v in vals], tick_labels=[str(v) for v in vals])
@@ -170,9 +440,13 @@ def main():
             fig.savefig(f"{carpeta}/{par}.png", dpi=130)
             plt.close(fig)
         print(nombre, "listo")
+    guardar_panorama(todos_finales, plt)
 
     # 3) Sesgo al centro: misma funcion con el optimo movido de lugar
     experimento_sesgo(n, plt)
+
+    # 4) Combinaciones de a, b y p con el mismo esfuerzo
+    experimento_combinaciones(n_comb, plt)
 
 
 if __name__ == "__main__":

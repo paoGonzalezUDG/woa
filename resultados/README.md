@@ -13,9 +13,26 @@ resultados/
 ├── 3_Sphere/
 ├── 4_Rosenbrock/
 ├── 5_Beale/
-└── 6_sesgo_centro/    Misma función con el mínimo movido de lugar
-    ├── resumen.csv        Rastrigin, Ackley y Sphere: original vs. movida
-    └── comparacion.png    cajas: original vs. movida
+├── 6_sesgo_centro/    Misma función con el mínimo movido de lugar
+│   ├── resumen.csv        Rastrigin, Ackley y Sphere: original vs. movida
+│   └── comparacion.png    cajas: original vs. movida
+└── 7_panorama/
+    ├── finales.csv        el resultado de CADA corrida de los barridos
+    │                      (la pestaña "Todas las cajas" de la app lo usa)
+│   └── cajas.png          las 25 gráficas de caja en una sola figura:
+│                          filas = funciones, columnas = parámetros
+└── 8_combinaciones/   Varios ajustes a la vez (25 corridas cada combinación)
+    ├── resumen.csv        81 combinaciones por función, con su lugar
+    │                      (1 = la mejor; empates comparten lugar)
+    ├── finales.csv        el resultado de cada corrida
+    ├── mejores.png        las 5 mejores de cada función + la de por defecto
+    └── cruce.png          la ganadora de cada función, ¿qué lugar saca
+                           en las demás?
+
+Las 81 combinaciones: a (1, 2, 3) × b (0.5, 1, 2) × p (0.2, 0.5, 0.8) × 3
+maneras de repartir el MISMO esfuerzo (ballenas × vueltas = 6000):
+10×600, 30×200 y 60×100. Así la comparación es justa (más ballenas o más
+vueltas siempre ayudan porque es más trabajo).
 ```
 
 También se pueden ver y descargar en la app (`streamlit run app.py`),

@@ -19,7 +19,7 @@ import streamlit as st
 from algoritmo.funciones import FUNCIONES
 from algoritmo.woa import woa
 from experimentos import PARAMS_DEFAULT, barrido
-from interfaz import paso_a_paso, visual, visual3d
+from interfaz import cajas, combinaciones, paso_a_paso, visual, visual3d
 
 st.set_page_config(page_title="WOA - Proyecto final", layout="wide")
 
@@ -170,10 +170,11 @@ st.title("El algoritmo de la ballena (WOA)")
 st.caption("Ballenas virtuales buscando el punto más bajo de 5 funciones "
            "matemáticas. Proyecto final.")
 
-(tab_inicio, tab1, tab_3d, tab_pp, tab2, tab3, tab4, tab_res,
- tab_rep) = st.tabs(["Empieza aquí", "Una corrida", "Simulación 3D",
-                     "Paso a paso", "Comparar", "Muchas corridas",
-                     "Sesgo al centro", "Resultados", "Reporte"])
+(tab_inicio, tab1, tab_3d, tab_pp, tab2, tab3, tab4, tab_cajas, tab_comb,
+ tab_res, tab_rep) = st.tabs([
+    "Empieza aquí", "Una corrida", "Simulación 3D", "Paso a paso",
+    "Comparar", "Muchas corridas", "Sesgo al centro", "Todas las cajas",
+    "Mejor combinación", "Resultados", "Reporte"])
 
 
 # --------------------------- Utilidades cacheadas ---------------------------
@@ -275,6 +276,8 @@ un terreno lleno de cerros y hoyos: hay que encontrar el hoyo más profundo
 | Ver por qué un ajuste cambia el resultado | **Comparar** |
 | Sacar datos confiables (muchas repeticiones) | **Muchas corridas** |
 | Ver el hallazgo más interesante del proyecto | **Sesgo al centro** |
+| Comparar todos los ajustes en las 5 funciones de un vistazo | **Todas las cajas** |
+| Saber qué combinación de ajustes es mejor para cada función | **Mejor combinación** |
 | Ver y descargar las tablas y gráficas del reporte | **Resultados** |
 | Leer la guía para escribir el reporte | **Reporte** |
 
@@ -822,6 +825,10 @@ def etiqueta_carpeta(nombre_carpeta):
         return "Las 5 funciones juntas (valores por defecto)"
     if nombre_carpeta == "6_sesgo_centro":
         return "Sesgo al centro (mínimo movido)"
+    if nombre_carpeta == "7_panorama":
+        return "Todas las cajas en una figura (funciones × ajustes)"
+    if nombre_carpeta == "8_combinaciones":
+        return "Mejor combinación de ajustes por función"
     num, _, resto = nombre_carpeta.partition("_")
     return f"{num}. {resto}"
 
@@ -851,6 +858,163 @@ def zip_resultados(firma):
                     os.path.join("resultados", ruta))
     return buf.getvalue()
 
+
+ARCHIVO_CAJAS = os.path.join(CARPETA_RES, "7_panorama", "finales.csv")
+
+
+@st.cache_data(show_spinner=False)
+def datos_cajas(firma):
+    """'firma' = fecha del archivo: si se regenera, se vuelve a leer."""
+    return cajas.leer(ARCHIVO_CAJAS)
+
+
+with tab_cajas:
+    st.write("Todos los experimentos en **una sola gráfica**: cada fila es "
+             "una función y cada columna un ajuste. Cada caja son 30 "
+             "corridas con ese valor (lo demás se queda en su valor por "
+             "defecto). Pasa el mouse sobre una caja para ver sus números.")
+    if not os.path.exists(ARCHIVO_CAJAS):
+        st.warning("Falta `resultados/7_panorama/finales.csv`. Se crea con "
+                   "`python experimentos.py --solo-panorama` (unos 4 min).")
+    else:
+        df_cajas = datos_cajas(os.path.getmtime(ARCHIVO_CAJAS))
+        with st.container(border=True):
+            c1, c2 = st.columns([3, 1])
+            ver_cajas = c1.radio(
+                "Ver", ["Todas"] + list(FUNCIONES), horizontal=True,
+                key="cajas_ver",
+                help="**Todas** junta las 5 funciones (la figura para el "
+                     "reporte). Elige una función para verla más grande.")
+            puntos_cajas = c2.toggle(
+                "Ver cada corrida", key="cajas_puntos",
+                help="Dibuja un puntito por cada una de las 30 corridas, "
+                     "no solo las raras.")
+        funcs_cajas = list(FUNCIONES) if ver_cajas == "Todas" else [ver_cajas]
+        st.plotly_chart(
+            cajas.figura_cajas(df_cajas, funcs_cajas, PARAMS_DEFAULT,
+                               puntos_cajas),
+            width="stretch", key="cajas_fig", theme=None)
+        with st.expander("¿Cómo leo esta gráfica?"):
+            st.markdown("""
+- **Más abajo = mejor** (más cerca del mínimo, que es 0).
+- **Franja azul:** el valor por defecto. Compara las otras cajas contra
+  ella para ver si ese ajuste ayuda o estorba.
+- **Caja:** guarda la mitad de las corridas. La raya de en medio es la
+  mediana y la raya punteada el promedio. Caja alta = corridas muy distintas
+  entre sí.
+- **Puntitos sueltos:** corridas raras (mucho mejores o peores que las demás).
+- **Escala logarítmica:** cada raya es 10 veces más chica que la anterior.
+  Todas las gráficas de una fila usan la misma escala, así que se pueden
+  comparar los ajustes entre sí.
+- **0 en el eje:** la línea punteada gris de abajo. Ahí se dibujan las
+  corridas que llegaron exactamente al mínimo.
+""")
+        st.caption("La versión en imagen para el reporte está en "
+                   "`resultados/7_panorama/cajas.png`.")
+
+ARCHIVO_COMB = os.path.join(CARPETA_RES, "8_combinaciones", "resumen.csv")
+
+
+@st.cache_data(show_spinner=False)
+def datos_comb(firma):
+    """'firma' = fecha del archivo: si se regenera, se vuelve a leer."""
+    return combinaciones.leer(ARCHIVO_COMB)
+
+
+with tab_comb:
+    st.write("Aquí se movieron **varios ajustes a la vez** para buscar la "
+             "mejor combinación de cada función. Se probaron todas las "
+             "combinaciones de **a** (1, 2, 3), **b** (0.5, 1, 2) y **p** "
+             "(0.2, 0.5, 0.8), y tres maneras de repartir el mismo esfuerzo "
+             "entre ballenas y vueltas (10×600, 30×200 y 60×100). En total "
+             "son **81 combinaciones**, cada una corrida **25 veces**.")
+    with st.expander("¿Por qué el mismo esfuerzo y no más ballenas o vueltas?"):
+        st.markdown("""
+Más ballenas o más vueltas **siempre** ayudan, porque es más trabajo (eso ya
+se ve en *Todas las cajas*). Si los metiéramos libres, ganaría siempre
+"100 ballenas × 500 vueltas" y no aprenderíamos nada. Por eso todas las
+combinaciones hacen **6,000 movimientos** (ballenas × vueltas): la pregunta
+es *cómo conviene repartirlos* y qué valores de a, b y p usar, con el
+mismo trabajo. Así la comparación es justa.
+""")
+    if not os.path.exists(ARCHIVO_COMB):
+        st.warning("Falta `resultados/8_combinaciones/resumen.csv`. Se crea "
+                   "con `python experimentos.py --solo-combinaciones` "
+                   "(unos 12 min).")
+    else:
+        df_comb = datos_comb(os.path.getmtime(ARCHIVO_COMB))
+        total_comb = int(df_comb.groupby("funcion").size().max())
+        f_comb = st.radio("Función", list(FUNCIONES), horizontal=True,
+                          key="comb_func",
+                          help="Elige la función para ver su mejor "
+                               "combinación.")
+        d_comb = combinaciones.de_funcion(df_comb, f_comb)
+        mejor_c = d_comb.iloc[0]
+        dfl_c = d_comb[combinaciones.es_default(d_comb, PARAMS_DEFAULT)].iloc[0]
+        empatadas = int((d_comb.lugar == 1).sum())
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Mejor combinación", combinaciones.texto(mejor_c),
+                  help="La que tiene la mediana más baja. Si empatan, gana "
+                       "la de menor promedio y luego la de peor corrida más "
+                       "baja.")
+        c2.metric("Lugar de la de por defecto",
+                  f"{int(dfl_c.lugar)} de {total_comb}",
+                  help="30 ballenas × 200 vueltas, a = 2, b = 1, p = 0.5 "
+                       "(los valores del artículo).")
+        c3.metric("Empatadas en 1er lugar", empatadas,
+                  help="Combinaciones cuyas 25 corridas dieron exactamente "
+                       "lo mismo que la mejor (normalmente: todas en 0).")
+        if empatadas > 1:
+            st.info(f"**{empatadas} combinaciones empatan en 1er lugar** "
+                    "(llegaron al mínimo en todas sus corridas). En esta "
+                    "función no hay una sola ganadora: muchas combinaciones "
+                    "sirven igual de bien.")
+
+        st.markdown("##### ¿Qué ajuste importa más en esta función?")
+        st.caption("Para cada valor, el **lugar promedio** de las "
+                   "combinaciones que lo usan (más arriba = mejor). Verde = "
+                   "el mejor valor; azul = el valor por defecto. Si los "
+                   "puntos de un ajuste quedan casi a la misma altura, ese "
+                   "ajuste casi no importa aquí; si están muy separados "
+                   "(\"diferencia\" grande), es el que más importa.")
+        st.plotly_chart(
+            combinaciones.figura_lugar_promedio(d_comb, PARAMS_DEFAULT,
+                                                total_comb),
+            width="stretch", key="comb_lugar", theme=None)
+
+        st.markdown("##### Las 10 mejores (y la de por defecto)")
+        t_comb = combinaciones.tabla(d_comb, PARAMS_DEFAULT).rename(columns={
+            "lugar": "Lugar", "reparto": "Ballenas × vueltas",
+            "por_defecto": "¿Por defecto?"})
+        st.dataframe(tabla_bonita(t_comb), hide_index=True)
+
+        st.markdown("##### ¿La mejor de una función sirve para las demás?")
+        st.caption("Cada fila es la combinación ganadora de una función. Los "
+                   "números son el lugar que saca en cada función (1 = la "
+                   f"mejor, {total_comb} = la peor). Verde = buen lugar, rojo "
+                   "= mal lugar.")
+        st.plotly_chart(
+            combinaciones.figura_cruce(df_comb, list(FUNCIONES),
+                                       PARAMS_DEFAULT, total_comb),
+            width="stretch", key="comb_cruce", theme=None)
+        with st.expander("¿Cómo leo esto?"):
+            st.markdown(f"""
+- **Lugar:** se ordenan las {total_comb} combinaciones de cada función de la
+  mejor (1) a la peor. Se compara primero la **mediana** de sus 25 corridas
+  (la corrida típica); si empatan, el **promedio**; luego la **peor** corrida.
+- **Empates:** si dos combinaciones dieron exactamente lo mismo (por ejemplo,
+  las 25 corridas en 0), comparten lugar.
+- **Lugar promedio:** si las combinaciones con a = 3 suelen quedar arriba en
+  la tabla, a = 3 tiene un lugar promedio bajo. Así se ve qué valor de cada
+  ajuste conviene, aunque los demás ajustes cambien.
+- **Tabla de colores:** si una fila es verde en su función y roja en otras,
+  esa combinación sirve para una función pero no para todas.
+- **Mismas semillas** para todas las combinaciones: la corrida 1 de cada una
+  empieza con las ballenas en el mismo lugar, así la comparación es pareja.
+""")
+        st.caption("Las versiones en imagen para el reporte están en "
+                   "`resultados/8_combinaciones/` (mejores.png y cruce.png).")
 
 with tab_res:
     st.write("Las tablas y gráficas que usamos en el reporte. Cada "

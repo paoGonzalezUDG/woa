@@ -29,6 +29,21 @@
       `tiempo_medio_s`. Falta comentarlo en el reporte (por ejemplo: más
       ballenas o más vueltas = más tiempo; ¿vale la pena?).
 
+- [ ] **Figura resumen de cajas** (21 de noviembre de 2026):
+      `resultados/7_panorama/cajas.png` junta las 25 gráficas de caja en una
+      sola (filas = funciones, columnas = parámetros; franja azul = valor
+      por defecto). En la app está interactiva en la pestaña *Todas las
+      cajas*. Pueden usarla en el reporte en lugar de varias de las
+      figuras 2 a 10 y dejar las sueltas solo en el anexo.
+
+- [ ] **Mejor combinación por función** (21 de noviembre de 2026):
+      `resultados/8_combinaciones/` y la pestaña *Mejor combinación*. 81
+      combinaciones (a × b × p × 3 repartos del mismo esfuerzo), 25 corridas
+      cada una. Para el reporte: `cruce.png` muestra que la ganadora de una
+      función no sirve para todas (la de Beale queda 73 de 81 en Rastrigin).
+      La de por defecto nunca queda entre las 20 mejores. Discútanlo con sus
+      palabras.
+
 ## Técnico
 
 - [x] Subir los cambios a GitHub (19 de noviembre de 2026).

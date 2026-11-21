@@ -87,8 +87,8 @@ def test_carga_inicial():
     assert not at.warning, _textos(at.warning)
     assert [t.label for t in at.tabs] == [
         "Empieza aquí", "Una corrida", "Simulación 3D", "Paso a paso",
-        "Comparar", "Muchas corridas", "Sesgo al centro", "Resultados",
-        "Reporte"]
+        "Comparar", "Muchas corridas", "Sesgo al centro", "Todas las cajas",
+        "Mejor combinación", "Resultados", "Reporte"]
 
 
 @pytest.mark.parametrize("nombre", FUNC)
@@ -306,6 +306,36 @@ def test_pestana_resultados_todas_las_carpetas(app):
                       "__todas__"]:
                 at.radio(key="res_param").set_value(p).run()
                 _sin_errores(at)
+
+
+@pytest.mark.parametrize("ver", ["Todas"] + FUNC)
+@pytest.mark.parametrize("puntos", [False, True])
+def test_pestana_todas_las_cajas(app, ver, puntos):
+    at = app
+    at.radio(key="cajas_ver").set_value(ver)
+    at.toggle(key="cajas_puntos").set_value(puntos).run()
+    _sin_errores(at)
+    fig = json.loads(at.get("plotly_chart")[0].proto.spec)
+    cajas_fig = [t for t in fig["data"] if t["type"] == "box"]
+    n_func = 5 if ver == "Todas" else 1
+    assert len(cajas_fig) == n_func * 17          # 4+4+3+3+3 valores
+    defecto = [t for t in cajas_fig if "por defecto" in t["name"]]
+    assert len(defecto) == n_func * 5
+
+
+@pytest.mark.parametrize("nombre", FUNC)
+def test_pestana_mejor_combinacion(app, nombre):
+    at = app
+    at.radio(key="comb_func").set_value(nombre).run()
+    _sin_errores(at)
+    figs = {c.proto.id: json.loads(c.proto.spec) for c in at.get("plotly_chart")}
+    lugar = [f for k, f in figs.items() if "comb_lugar" in k][0]
+    cruce = [f for k, f in figs.items() if "comb_cruce" in k][0]
+    assert len(lugar["data"]) == 4                 # reparto, a, b, p
+    z = cruce["data"][0]["z"]
+    z = _arr(z) if isinstance(z, dict) else np.array(z)
+    assert z.shape == (6, 5)
+    assert all(z[i, i] == 1 for i in range(5))     # cada ganadora es 1a
 
 
 def test_pestana_reporte_encuentra_todas_las_imagenes(app):
