@@ -271,10 +271,9 @@ def experimento_combinaciones(n, plt, carpeta="resultados/8_combinaciones"):
 
 
 def rehacer_figuras_combinaciones(plt, carpeta="resultados/8_combinaciones"):
-    """Vuelve a ordenar y dibujar desde los CSV (sin correr nada)."""
+    """Vuelve a dibujar desde los CSV (sin correr nada ni reescribirlos)."""
     res = ordenar_combinaciones(pd.read_csv(f"{carpeta}/resumen.csv")
                                 .drop(columns="lugar", errors="ignore"))
-    res.to_csv(f"{carpeta}/resumen.csv", index=False)
     figuras_combinaciones(res, pd.read_csv(f"{carpeta}/finales.csv"), plt,
                           carpeta)
 
@@ -372,6 +371,117 @@ def figuras_combinaciones(res, crudo, plt, carpeta):
                  f"{total} = la peor)", pad=28)
     fig.tight_layout()
     fig.savefig(f"{carpeta}/cruce.png", dpi=130, bbox_inches="tight")
+    plt.close(fig)
+
+    figura_mapa(res, plt, f"{carpeta}/mapa.png")
+    figura_terrenos(plt, f"{carpeta}/terrenos.png")
+
+
+# Grupos del mapa: (titulo, columna, valores)
+GRUPOS_MAPA = [("Ballenas × vueltas", "n_ballenas", [nb for nb, _ in REPARTOS]),
+               ("a inicial", "a_inicial", BARRIDOS["a_inicial"]),
+               ("b (espiral)", "b", BARRIDOS["b"]),
+               ("p (umbral)", "p_umbral", BARRIDOS["p_umbral"])]
+
+
+def lugar_promedio_por_valor(res):
+    """dict funcion -> lista (grupo, valor, lugar promedio de las
+    combinaciones que usan ese valor). Menor = conviene mas."""
+    out = {}
+    for nom in FUNCIONES:
+        r = res[res.funcion == nom]
+        out[nom] = [(g, v, float(r.loc[np.isclose(r[col], v), "lugar"].mean()))
+                    for g, col, vals in GRUPOS_MAPA for v in vals]
+    return out
+
+
+def figura_mapa(res, plt, ruta):
+    """Filas = funciones, columnas = cada valor de cada ajuste; color =
+    lugar promedio. Recuadro = el mejor valor de ese ajuste en esa funcion;
+    punto = el valor por defecto."""
+    lp = lugar_promedio_por_valor(res)
+    nombres = list(FUNCIONES)
+    etiquetas = []
+    for g, col, vals in GRUPOS_MAPA:
+        if col == "n_ballenas":
+            etiquetas += [f"{nb}×{mi}" for nb, mi in REPARTOS]
+        else:
+            etiquetas += [f"{v:g}" for v in vals]
+    M = np.array([[x[2] for x in lp[nom]] for nom in nombres])
+    total = len(res) // len(nombres)
+    fig, ax = plt.subplots(figsize=(13, 4.4))
+    ax.imshow(M, cmap="RdYlGn_r", vmin=1, vmax=total, aspect="auto")
+    dfl = {"n_ballenas": PARAMS_DEFAULT["n_ballenas"],
+           **{c: PARAMS_DEFAULT[c] for _, c, _ in GRUPOS_MAPA[1:]}}
+    j0 = 0
+    for g, col, vals in GRUPOS_MAPA:
+        for i in range(len(nombres)):
+            fila = M[i, j0:j0 + len(vals)]
+            jm = j0 + int(np.argmin(fila))
+            ax.add_patch(plt.Rectangle((jm - 0.47, i - 0.45), 0.94, 0.9,
+                                       fill=False, lw=2.5, ec="black"))
+            for k, v in enumerate(vals):
+                ax.text(j0 + k, i, f"{M[i, j0 + k]:.0f}", ha="center",
+                        va="center", fontsize=11,
+                        fontweight="bold" if j0 + k == jm else "normal")
+                if np.isclose(v, dfl[col]):
+                    ax.plot(j0 + k + 0.32, i - 0.28, "o", ms=5, color="#1f4e79")
+        if j0:
+            ax.axvline(j0 - 0.5, color="white", lw=6)
+        ax.text(j0 + (len(vals) - 1) / 2, -0.95, g, ha="center", va="bottom",
+                fontsize=11, fontweight="bold")
+        j0 += len(vals)
+    ax.set_xticks(range(len(etiquetas)), etiquetas)
+    ax.set_yticks(range(len(nombres)), nombres, fontsize=11)
+    ax.set_ylim(len(nombres) - 0.5, -1.2)
+    ax.tick_params(length=0)
+    for s in ax.spines.values():
+        s.set_visible(False)
+    fig.suptitle("¿Qué valor de cada ajuste conviene en cada función? (lugar "
+                 f"promedio entre las {total} combinaciones; menor = mejor)",
+                 fontsize=12)
+    fig.text(0.5, -0.02, "Recuadro = el mejor valor de ese ajuste en esa "
+             "función · punto azul = valor por defecto · mismo esfuerzo en "
+             "todas: ballenas × vueltas = 6000", ha="center", fontsize=9.5,
+             color="#444")
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=130, bbox_inches="tight")
+    plt.close(fig)
+
+
+# Apodos y zona a dibujar (la de Rosenbrock se acerca para ver el valle)
+TERRENOS = {"Rastrigin": ("cartón de huevo", None),
+            "Ackley": ("llanura con un pozo", None),
+            "Sphere": ("tazón", None),
+            "Rosenbrock": ("valle del plátano (acercado)", (-2, 2, -1, 3)),
+            "Beale": ("valles angostos", None)}
+
+
+def figura_terrenos(plt, ruta, n=91):   # impar: pasa por el centro
+    """Las 5 funciones en 3D (version de 2 variables). Altura log10(1+f)
+    para que se vean los detalles, como en la Simulacion 3D."""
+    fig = plt.figure(figsize=(18, 4.2))
+    for k, (nom, (apodo, zona)) in enumerate(TERRENOS.items(), start=1):
+        cfg = FUNCIONES[nom]
+        x0, x1, y0, y1 = zona or (cfg["lb"], cfg["ub"], cfg["lb"], cfg["ub"])
+        X, Y = np.meshgrid(np.linspace(x0, x1, n), np.linspace(y0, y1, n))
+        Z = np.array([[cfg["f"](np.array([x, y])) for x, y in zip(fx, fy)]
+                      for fx, fy in zip(X, Y)])
+        Zl = np.log10(1 + Z)
+        ax = fig.add_subplot(1, len(TERRENOS), k, projection="3d")
+        ax.plot_surface(X, Y, Zl, cmap="viridis", linewidth=0,
+                        antialiased=True, rstride=1, cstride=1, alpha=0.95)
+        ox, oy = cfg["optimo_x"](2)
+        ax.scatter([ox], [oy], [np.log10(1 + cfg["optimo_f"])], color="red",
+                   s=60, marker="*", depthshade=False, zorder=10)
+        ax.set_title(f"{nom}\n{apodo}", fontsize=11, fontweight="bold")
+        ax.set_xticks([]); ax.set_yticks([]); ax.set_zticks([])
+        ax.view_init(elev=35, azim=-60)
+    fig.suptitle("Cómo es cada función (con 2 variables). Estrella roja = el "
+                 "mínimo. Altura en escala log para ver los detalles",
+                 fontsize=12, y=1.06)
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=130, bbox_inches="tight")
     plt.close(fig)
 
 

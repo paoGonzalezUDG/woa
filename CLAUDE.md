@@ -58,8 +58,10 @@ Correr todo desde la raiz del proyecto.
   `REPARTOS` (10x600, 30x200, 60x100: mismo esfuerzo 6000) x a x b x p, 25
   corridas (semillas 0-24). resumen.csv con `lugar` (mediana, luego media,
   luego peor; empates exactos comparten lugar), finales.csv (cada corrida),
-  mejores.png y cruce.png. `rehacer_figuras_combinaciones()` redibuja sin
-  correr.
+  mejores.png, cruce.png, mapa.png (lugar promedio por valor) y
+  terrenos.png. `rehacer_figuras_combinaciones()` redibuja sin correr ni
+  reescribir CSV. Seccion 4.6 del reporte usa estas figuras; sus numeros
+  estan en COMBOS y test_lugares_promedio_del_reporte (test_resultados).
 - El reporte incrusta PNG con `![..](../resultados/...)`; sus Anexos A/B se
   generaron desde los CSV. La pestana Reporte de app.py lo muestra
   (`mostrar_markdown` separa las lineas de imagen para `st.image`).

@@ -260,6 +260,15 @@ resultado cambia, sabemos que fue por ese parámetro y no por otro.
 Eso da 5 funciones × 5 parámetros = **25 experimentos**, más el experimento
 base con los valores por defecto.
 
+### Experimento extra: varios parámetros a la vez
+
+Cambiar uno a la vez no muestra si dos ajustes juntos hacen algo distinto.
+Por eso también probamos **combinaciones**: todos los valores de `a`, `b` y
+el umbral de `p` juntos, con 3 maneras de repartir el mismo esfuerzo entre
+ballenas y vueltas (10×600, 30×200, 60×100). Son 81 combinaciones, con 25
+corridas cada una (no 30, para que no tardara horas). Los resultados están
+en la sección 4.6 y en `resultados/8_combinaciones/`.
+
 ### Experimento extra: ¿y si movemos el mínimo de lugar?
 
 Para revisar si WOA tiene preferencia por el centro, tomamos la **misma
@@ -532,6 +541,127 @@ ballenas, 500 vueltas, 30 corridas**.
   detalles de implementación cambian los resultados y que hay que decir
   exactamente qué versión se usó.
 
+### 4.6 ¿Qué parámetros convienen en cada función? (sección visual)
+
+> **Cómo usar esta sección.** Son 3 figuras que responden la pregunta del
+> profe sin llenar el reporte de gráficas. Abajo de cada una van los datos
+> y las **pistas** del "por qué". Escriban la explicación con sus palabras;
+> las pistas marcadas como *hipótesis* díganlas como hipótesis.
+> En la app: pestaña *Mejor combinación*.
+
+**Qué hicimos (para la sección 3):** movimos **varios ajustes a la vez**.
+Todas las combinaciones de `a` (1, 2, 3), `b` (0.5, 1, 2) y umbral de `p`
+(0.2, 0.5, 0.8), y 3 maneras de repartir **el mismo esfuerzo** entre
+ballenas y vueltas: 10×600, 30×200 y 60×100 (siempre 6,000 movimientos).
+Son **81 combinaciones × 25 corridas** por función. Mismo esfuerzo porque
+más ballenas o más vueltas siempre ayudan (es más trabajo) y la
+comparación no sería justa. Cada combinación se ordenó del lugar 1 (mejor)
+al 81 por su mediana. Datos: `resultados/8_combinaciones/`.
+
+#### Paso 1: cómo es cada terreno
+
+![Figura 12](../resultados/8_combinaciones/terrenos.png)
+
+*Figura 12. Las 5 funciones con 2 variables. La forma del terreno explica
+casi todo lo que viene después.*
+
+#### Paso 2: qué valor de cada ajuste conviene en cada función
+
+![Figura 13](../resultados/8_combinaciones/mapa.png)
+
+*Figura 13. Cada casilla es el lugar promedio de las combinaciones que usan
+ese valor (menor = mejor). El recuadro marca el mejor valor de cada ajuste
+en cada función.*
+
+Cómo leerla: si en una fila los 3 números de un ajuste son muy distintos,
+ese ajuste **importa mucho** en esa función. Si son parecidos, casi no
+importa.
+
+| Función | Mejor combinación | Su mediana | Mediana de la de por defecto (lugar) | Ajuste que más importa |
+|---|---|---|---|---|
+| Rastrigin | 20 empatadas (25 de 25 corridas en 0) | 0 | 0 (lugar 21) | reparto y que `a` no sea 1 |
+| Ackley | 10×600, a=2, b=1, p=0.8 | 0 | 3.6e-15 (lugar 56) | reparto |
+| Sphere | 10×600, a=2, b=1, p=0.5 | 7.4e-80 | 2.0e-34 (lugar 33) | reparto |
+| Rosenbrock | 10×600, a=3, b=0.5, p=0.8 | **0.020** | **8.57** (lugar 47) | `a` |
+| Beale | 60×100, a=3, b=2, p=0.2 | 1.7e-15 | 7.8e-9 (lugar 38) | umbral de `p` |
+
+*(25 corridas por combinación. La de por defecto es 30×200, a=2, b=1,
+p=0.5.)*
+
+**Fichas por función** (datos + pistas del por qué):
+
+- **Rastrigin (cartón de huevo).** Lo que más pesa es el reparto: 10×600
+  queda en lugar promedio 18 y 60×100 en 61. Lo peor es `a = 1` (51) y
+  `p = 0.2` (53). **Dato fuerte:** las 4 peores combinaciones de las 81
+  usan **las dos cosas juntas** (`a = 1` y `p = 0.2`), con medianas de
+  15 a 32.8. Por separado (sección 4.2) solo daban algunas corridas
+  atoradas; juntas casi todas se atoran.
+  - *Pista:* con `a = 1` nunca hay búsqueda al azar, y con `p = 0.2` casi
+    siempre toca espiral. Juntas dejan a las ballenas **sin ninguna forma de
+    explorar**, y en un terreno lleno de hoyitos eso es fatal. Por eso vale
+    la pena probar combinaciones: hay efectos que solo aparecen juntos.
+  - *Pista:* 60×100 solo da 100 vueltas; ya vimos en 4.2 que con pocas
+    vueltas Rastrigin no alcanza a llegar.
+- **Ackley (llanura con un pozo).** Las 81 combinaciones llegan
+  prácticamente a 0 (todas sus medianas son menores que 1e-10). El
+  "ganador" solo se decide por diferencias del tamaño del redondeo de la
+  computadora (~1e-15).
+  - *Pista:* en una función fácil para WOA (mínimo en el centro, sección
+    4.3) casi cualquier ajuste sirve. Que la de por defecto quede en el
+    lugar 56 **no** significa que sea mala.
+- **Sphere (tazón).** Lo único que importa es el reparto: 10×600 queda en
+  14 y 60×100 en 68. `b` no cambia nada (41, 41, 42). Todas llegan a
+  menos de 1e-10; la diferencia está en **qué tan fino** afinan (7.4e-80
+  contra 2.0e-34).
+  - *Pista:* en un tazón no hay trampas, así que no hace falta explorar.
+    Lo que gana es tener **muchas vueltas para seguir afinando**. Con el
+    mismo esfuerzo, 10 ballenas × 600 vueltas afinan 3 veces más tiempo
+    que 30 × 200.
+- **Rosenbrock (valle del plátano).** Aquí sí se nota ajustar: la mediana
+  baja de **8.57 a 0.020**. De sus 25 corridas, la de por defecto deja 17
+  atoradas arriba de 1; la mejor, ninguna. Lo que más importa es `a`:
+  `a = 3` queda en 21 y `a = 1` en 63. También ayuda `p = 0.8`.
+  - *Pista:* `a = 3` y `p = 0.8` dan **más exploración** (más búsquedas al
+    azar y por más tiempo). Eso ayuda a no quedarse atoradas en la parte
+    plana del valle, el "~8.9" de la sección 4.4. *(Hipótesis.)*
+- **Beale (valles angostos).** Lo que más importa es el umbral de `p`, al
+  revés que en Rosenbrock: `p = 0.2` (mucha espiral) queda en 16 y
+  `p = 0.8` en 65. La mediana baja de 7.8e-9 a 1.7e-15.
+  - *Pista:* la espiral es el movimiento que **afina alrededor de la
+    presa**. En valles angostos sirve más afinar dentro del valle que
+    explorar. *(Hipótesis.)*
+  - **Ojo:** en la mayoría de las combinaciones (55 de 81), de 3 a 5 de
+    las 25 corridas se atoran en ~0.76 (un mínimo local), y la mejor
+    combinación tiene 5
+    corridas atoradas, más que la de por defecto (3). **La mediana mejora,
+    pero el peor caso no.** Elegir "la mejor" por la mediana o por la peor
+    corrida da resultados distintos (como en 4.1 con el promedio).
+
+#### Paso 3: ¿hay una combinación que sirva para todas?
+
+![Figura 14](../resultados/8_combinaciones/cruce.png)
+
+*Figura 14. Cada fila es la combinación ganadora de una función; los
+números son el lugar que saca en cada función (de 81).*
+
+- **Qué vimos:** **no**. La mejor de Beale queda en el lugar **73** en
+  Rastrigin y en el 75 en Sphere. La mejor de Rastrigin queda en el
+  **80** en Rosenbrock.
+- **Por qué:** cada terreno pide algo distinto. Rosenbrock pide explorar
+  (`a` alto, poca espiral) y Beale pide afinar (mucha espiral). Sphere solo
+  pide vueltas. Lo que ayuda en un terreno estorba en otro.
+- **Conexión con la teoría:** es justo la idea de que ningún método (ni
+  ninguna configuración) es el mejor para todos los problemas (Wolpert y
+  Macready, 1997; ver bibliografía opcional).
+- **Dato para la conclusión:** la de por defecto (la del artículo) nunca
+  queda entre las 20 mejores, pero tampoco es mala en ninguna: es un
+  **término medio** razonable cuando no se sabe cómo es el terreno.
+
+![Figura 15](../resultados/8_combinaciones/mejores.png)
+
+*Figura 15 (opcional o para el anexo). Las 5 mejores combinaciones de cada
+función contra la de por defecto (azul).*
+
 ---
 
 ## 5. Conclusiones
@@ -555,6 +685,10 @@ Ideas para escribir con sus palabras:
 5. **`b` casi no importa** en estas funciones.
 6. **Reportar solo el promedio puede engañar** (caso Beale): hay que ver
    también la mediana y el peor caso.
+7. **Los ajustes se combinan** (sección 4.6): `a = 1` y `p = 0.2` juntos
+   arruinan Rastrigin, aunque por separado solo causaban algunas corridas
+   malas. La mejor combinación de cada función es distinta, y la del
+   artículo es un término medio que no gana en ninguna pero tampoco falla.
 
 **Limitaciones (es bueno decirlas):**
 
@@ -562,13 +696,15 @@ Ideas para escribir con sus palabras:
 - Los dominios de Sphere y Rosenbrock los elegimos nosotras (aunque
   coinciden con los del artículo).
 - Usamos 200 vueltas en lugar de las 500 del artículo.
-- Cambiamos un parámetro a la vez; no probamos combinaciones.
+- Las combinaciones (sección 4.6) usaron 25 corridas en lugar de 30 y solo
+  un esfuerzo total (6,000 movimientos).
 - Lo de Rosenbrock es una hipótesis sin comprobar.
 - Nuestros números no son directamente comparables con los del artículo
   (sección 4.5).
 
-**Qué se podría hacer después:** probar con más variables, combinar
-parámetros, o comparar WOA contra otro algoritmo con las funciones movidas.
+**Qué se podría hacer después:** probar con más variables, probar las
+combinaciones con otros esfuerzos, o comparar WOA contra otro algoritmo con
+las funciones movidas.
 
 ---
 

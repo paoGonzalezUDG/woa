@@ -26,8 +26,11 @@ resultados/
     │                      (1 = la mejor; empates comparten lugar)
     ├── finales.csv        el resultado de cada corrida
     ├── mejores.png        las 5 mejores de cada función + la de por defecto
-    └── cruce.png          la ganadora de cada función, ¿qué lugar saca
-                           en las demás?
+    ├── cruce.png          la ganadora de cada función, ¿qué lugar saca
+    │                      en las demás?
+    ├── mapa.png           qué valor de cada ajuste conviene en cada función
+    │                      (lugar promedio)
+    └── terrenos.png       las 5 funciones en 3D (con 2 variables)
 
 Las 81 combinaciones: a (1, 2, 3) × b (0.5, 1, 2) × p (0.2, 0.5, 0.8) × 3
 maneras de repartir el MISMO esfuerzo (ballenas × vueltas = 6000):

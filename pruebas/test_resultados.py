@@ -48,7 +48,7 @@ def test_regenerar_experimentos_da_los_mismos_numeros(tmp_path):
                 assert np.allclose(a[col], b[col], rtol=1e-9, atol=0), (rel, col)
     pngs = [os.path.join(r, x) for r, _, xs in os.walk(nuevos) for x in xs
             if x.endswith(".png")]
-    assert len(pngs) == 30
+    assert len(pngs) == 32
 
 
 def test_panorama_cuadra_con_los_csv():
@@ -228,6 +228,53 @@ def test_numeros_escritos_aparecen_en_el_reporte():
     for a in AFIRMACIONES:
         if a[-1] != "0":
             assert a[-1] in texto, f"{a[-1]} ya no aparece en el reporte"
+
+
+# Seccion 4.6 del reporte (combinaciones). (funcion, reparto, a, b, p,
+# columna, escrito); reparto = n_ballenas
+D = (30, 2.0, 1.0, 0.5)
+COMBOS = [
+    ("Ackley", 10, 2.0, 1.0, 0.8, "mediana", "0"),
+    ("Ackley", *D, "mediana", "3.6e-15"), ("Ackley", *D, "lugar", "56"),
+    ("Rastrigin", *D, "lugar", "21"),
+    ("Sphere", 10, 2.0, 1.0, 0.5, "mediana", "7.4e-80"),
+    ("Sphere", *D, "mediana", "2.0e-34"), ("Sphere", *D, "lugar", "33"),
+    ("Rosenbrock", 10, 3.0, 0.5, 0.8, "mediana", "0.020"),
+    ("Rosenbrock", *D, "mediana", "8.57"), ("Rosenbrock", *D, "lugar", "47"),
+    ("Beale", 60, 3.0, 2.0, 0.2, "mediana", "1.7e-15"),
+    ("Beale", *D, "mediana", "7.8e-9"), ("Beale", *D, "lugar", "38"),
+    ("Rastrigin", 60, 1.0, 0.5, 0.2, "mediana", "32.8"),
+    ("Rastrigin", 10, 1.0, 0.5, 0.2, "mediana", "15"),
+]
+
+
+@pytest.mark.parametrize("nom, nb, a, b, p, col, escrito", COMBOS)
+def test_numero_de_combinaciones_del_reporte(nom, nb, a, b, p, col, escrito):
+    df = pd.read_csv(os.path.join(RES, "8_combinaciones", "resumen.csv"))
+    fila = df[(df.funcion == nom) & (df.n_ballenas == nb) & (df.a_inicial == a)
+              & (df.b == b) & (df.p_umbral == p)]
+    assert len(fila) == 1
+    assert _coincide(float(fila.iloc[0][col]), escrito), (nom, col, escrito)
+
+
+def test_lugares_promedio_del_reporte():
+    """Los lugares promedio de la seccion 4.6 (figura mapa.png)."""
+    import sys
+    sys.path.insert(0, RAIZ)
+    from experimentos import lugar_promedio_por_valor
+    df = pd.read_csv(os.path.join(RES, "8_combinaciones", "resumen.csv"))
+    lp = {nom: {(g, v): round(x) for g, v, x in filas}
+          for nom, filas in lugar_promedio_por_valor(df).items()}
+    R, A, B_, P = "Ballenas × vueltas", "a inicial", "b (espiral)", "p (umbral)"
+    esperado = {("Rastrigin", R, 10): 18, ("Rastrigin", R, 60): 61,
+                ("Rastrigin", A, 1.0): 51, ("Rastrigin", P, 0.2): 53,
+                ("Sphere", R, 10): 14, ("Sphere", R, 60): 68,
+                ("Sphere", B_, 0.5): 42, ("Sphere", B_, 1.0): 41,
+                ("Sphere", B_, 2.0): 41,
+                ("Rosenbrock", A, 3.0): 21, ("Rosenbrock", A, 1.0): 63,
+                ("Beale", P, 0.2): 16, ("Beale", P, 0.8): 65}
+    for (nom, g, v), x in esperado.items():
+        assert lp[nom][(g, v)] == x, (nom, g, v)
 
 
 def test_imagenes_del_reporte_existen():

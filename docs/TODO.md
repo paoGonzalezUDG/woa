@@ -42,7 +42,8 @@
       cada una. Para el reporte: `cruce.png` muestra que la ganadora de una
       función no sirve para todas (la de Beale queda 73 de 81 en Rastrigin).
       La de por defecto nunca queda entre las 20 mejores. Discútanlo con sus
-      palabras.
+      palabras. La guía ya tiene la **sección 4.6** (visual: terrenos.png,
+      mapa.png y cruce.png, con fichas por función y pistas del por qué).
 
 ## Técnico
 
