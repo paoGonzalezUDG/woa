@@ -48,7 +48,7 @@ def test_regenerar_experimentos_da_los_mismos_numeros(tmp_path):
                 assert np.allclose(a[col], b[col], rtol=1e-9, atol=0), (rel, col)
     pngs = [os.path.join(r, x) for r, _, xs in os.walk(nuevos) for x in xs
             if x.endswith(".png")]
-    assert len(pngs) == 32
+    assert len(pngs) == 33
 
 
 def test_panorama_cuadra_con_los_csv():

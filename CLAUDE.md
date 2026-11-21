@@ -52,7 +52,9 @@ Correr todo desde la raiz del proyecto.
   Ajustes del sidebar con key `sb_*` inicializados en session_state (sin
   value=) para que el boton de reinicio no genere avisos.
 - `resultados/`: CSV y PNG generados (30 corridas). Usarlos en vez de recorrer.
-  `0_base/{resumen.csv,convergencia.png}` y `<n>_<Funcion>/<parametro>.{csv,png}`
+  `0_base/{resumen.csv,convergencia.png,tiempo_calidad.png}` (esta ultima
+  sale de los CSV de max_iter y n_ballenas: x = ballenas x vueltas, arriba
+  segundos aprox.; se redibuja en cada `experimentos.py` salvo --rapido) y `<n>_<Funcion>/<parametro>.{csv,png}`
   (n = orden de Wikipedia: 1 Rastrigin ... 5 Beale) y `6_sesgo_centro/`
   (`experimentos.py --solo-sesgo`, `SESGO` = {Rastrigin 2, Ackley 1.5, Sphere 30};
   tambien `rosenbrock.{csv,png}`: a donde llega cada corrida, centro (vale 9)

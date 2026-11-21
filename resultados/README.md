@@ -7,7 +7,9 @@ Cada configuración se corrió **30 veces**. Todo se genera con
 resultados/
 ├── 0_base/            Las 5 funciones juntas, con los valores por defecto
 │   ├── resumen.csv        tabla: una fila por función
-│   └── convergencia.png   gráfica: una línea por función
+│   ├── convergencia.png   gráfica: una línea por función
+│   └── tiempo_calidad.png ¿vale la pena gastar más tiempo? (sale de los
+│                          CSV de vueltas y ballenas)
 ├── 1_Rastrigin/       Una carpeta por función, en el orden de Wikipedia
 ├── 2_Ackley/
 ├── 3_Sphere/

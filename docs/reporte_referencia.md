@@ -480,6 +480,38 @@ resultado mejora mucho.*
 *Figura 10. Rosenbrock con distinto `b`. Es la única función donde `b`
 cambia algo; en las demás las cajas quedan casi iguales (ver Anexo B).*
 
+#### ¿Vale la pena gastar más tiempo? (tiempo de ejecución)
+
+El profe pidió comentar el tiempo. Más ballenas o más vueltas = más
+movimientos = más tiempo, casi en proporción: el doble de movimientos
+tarda más o menos el doble. Con los valores por defecto (30 × 200 = 6,000
+movimientos) cada corrida tarda alrededor de una décima de segundo en
+nuestra computadora.
+
+![Figura 11](../resultados/0_base/tiempo_calidad.png)
+
+*Figura 11. Cada punto son 30 corridas. Hacia la derecha = más esfuerzo
+(arriba, los segundos aproximados); hacia abajo = mejor. Morado: más
+vueltas; café: más ballenas; estrella: valores por defecto.*
+
+- **Rastrigin y Ackley:** desde los valores por defecto ya llegan
+  prácticamente a 0. **Gastar más tiempo no sirve.**
+- **Sphere:** sigue mejorando, pero ya estaba resuelta. Lo interesante: con
+  un tiempo parecido, **más vueltas rinde mucho más que más ballenas**
+  (500 vueltas da 1.4e-89; 100 ballenas, 7.3e-45).
+- **Rosenbrock:** es la única donde **sí vale la pena**, y aquí conviene más
+  **agregar ballenas**: con un tiempo parecido, 100 ballenas dan 0.12 y 500
+  vueltas, 0.40.
+- **Beale:** mejora poco a poco con cualquiera de las dos, pero la peor
+  corrida se queda en 0.76 siempre: el tiempo extra no rescata a las que se
+  atoran.
+- *Pista del porqué:* más vueltas = más tiempo para **afinar** (lo que pide
+  un tazón como Sphere). Más ballenas = más **puntos de partida**, así es
+  menos probable que todas se queden en el centro (lo que pide Rosenbrock,
+  sección 4.4).
+- **Conclusión práctica:** los valores por defecto son un buen equilibrio.
+  Solo en Rosenbrock vale la pena pagar más tiempo.
+
 ### 4.3 El experimento del mínimo movido (sesgo al centro)
 
 Misma función, 30 corridas, solo cambia dónde está el mínimo:
@@ -492,9 +524,9 @@ Misma función, 30 corridas, solo cambia dónde está el mínimo:
 
 *(Medianas.)* Fuente: `resultados/6_sesgo_centro/resumen.csv`
 
-![Figura 11](../resultados/6_sesgo_centro/comparacion.png)
+![Figura 12](../resultados/6_sesgo_centro/comparacion.png)
 
-*Figura 11. La misma función con el mínimo en el centro (izquierda de cada
+*Figura 12. La misma función con el mínimo en el centro (izquierda de cada
 panel) y movido de lugar (derecha). Al moverlo, todas las corridas empeoran.*
 
 - **Qué vimos:** la misma función, igual de difícil, da resultados muchísimo
@@ -527,9 +559,9 @@ Revisamos **dónde** termina cada corrida:
 *"Cerca" = a menos de 0.5 de distancia. Fuente:
 `resultados/6_sesgo_centro/rosenbrock.csv`*
 
-![Figura 12](../resultados/6_sesgo_centro/rosenbrock.png)
+![Figura 13](../resultados/6_sesgo_centro/rosenbrock.png)
 
-*Figura 12. Izquierda: cada punto es una corrida con los valores por
+*Figura 13. Izquierda: cada punto es una corrida con los valores por
 defecto; quedan en dos grupos, pegadas al centro o en el mínimo real.
 Derecha: cuántas corridas se atoran en el centro con distintos ajustes.*
 
@@ -588,16 +620,16 @@ al 81 por su mediana. Datos: `resultados/8_combinaciones/`.
 
 #### Paso 1: cómo es cada terreno
 
-![Figura 13](../resultados/8_combinaciones/terrenos.png)
+![Figura 14](../resultados/8_combinaciones/terrenos.png)
 
-*Figura 13. Las 5 funciones con 2 variables. La forma del terreno explica
+*Figura 14. Las 5 funciones con 2 variables. La forma del terreno explica
 casi todo lo que viene después.*
 
 #### Paso 2: qué valor de cada ajuste conviene en cada función
 
-![Figura 14](../resultados/8_combinaciones/mapa.png)
+![Figura 15](../resultados/8_combinaciones/mapa.png)
 
-*Figura 14. Cada casilla es el lugar promedio de las combinaciones que usan
+*Figura 15. Cada casilla es el lugar promedio de las combinaciones que usan
 ese valor (menor = mejor). El recuadro marca el mejor valor de cada ajuste
 en cada función.*
 
@@ -667,9 +699,9 @@ p=0.5.)*
 
 #### Paso 3: ¿hay una combinación que sirva para todas?
 
-![Figura 15](../resultados/8_combinaciones/cruce.png)
+![Figura 16](../resultados/8_combinaciones/cruce.png)
 
-*Figura 15. Cada fila es la combinación ganadora de una función; los
+*Figura 16. Cada fila es la combinación ganadora de una función; los
 números son el lugar que saca en cada función (de 81).*
 
 - **Qué vimos:** **no**. La mejor de Beale queda en el lugar **73** en
@@ -697,7 +729,8 @@ Ideas para escribir con sus palabras:
    en el centro, y WOA tiene preferencia por el centro. Al mover el mínimo,
    el resultado empeora mucho. Fue el hallazgo más interesante del proyecto.
 3. **Más vueltas y más ballenas casi siempre ayudan**, pero cuestan más
-   tiempo de cómputo. Es un intercambio entre calidad y costo.
+   tiempo de cómputo. Es un intercambio entre calidad y costo, y solo en
+   Rosenbrock vale la pena pagarlo (Figura 11).
 4. **`a` inicial y el umbral de `p` controlan el equilibrio entre explorar y
    explotar**, y **no hay un valor que sea el mejor para todas las
    funciones**: depende del tipo de terreno. Funciones con trampas

@@ -1,72 +1,74 @@
 # Pendientes del proyecto
 
-Última revisión: 19 de noviembre de 2026, después de correr todas las pruebas
-(`pruebas/`).
+Última revisión: 21 de noviembre de 2026, después de las pruebas de humo
+(292 pruebas automáticas, `experimentos.py` completo y la app en el
+navegador con las 5 funciones: 0 errores).
 
 ## Para entregar (lo que les toca a ustedes)
 
-- [ ] **Escribir el reporte con sus propias palabras** y en tono formal. La
-      guía con todo el contenido y los números está en
-      [reporte_referencia.md](reporte_referencia.md).
-- [ ] **Confirmar con el profe el uso de IA.** Si solo la permitió para la
-      interfaz, `algoritmo/woa.py` también lo generó la IA: confirmen que está
-      bien o reescríbanlo ustedes (son unas 50 líneas).
-- [ ] **Verificar en el artículo de WOA** (Mirjalili y Lewis, 2016):
+### 1. Escribir el reporte (lo que se evalúa)
+
+- [ ] **Escribirlo con sus propias palabras** y en tono formal, siguiendo
+      [reporte_referencia.md](reporte_referencia.md) (también en la app,
+      sección *Reporte*).
+- [ ] **Discusión de cada parámetro** (sección 4.2 de la guía, figuras 2 a
+      10). Para no poner tantas gráficas, pueden usar una sola:
+      `resultados/7_panorama/cajas.png` (las 25 cajas juntas).
+- [ ] **Tiempo de ejecución** (lo pidió el profe): Figura 11,
+      `resultados/0_base/tiempo_calidad.png`. Idea central: solo en
+      Rosenbrock vale la pena gastar más tiempo.
+- [ ] **Sesgo al centro y Rosenbrock** (secciones 4.3 y 4.4, figuras 12 y
+      13): el hallazgo principal. Rosenbrock se atora en ~8.9 porque las
+      ballenas se quedan en el centro, donde vale 9.
+- [ ] **Qué parámetros convienen en cada función** (sección 4.6, figuras
+      14 a 16: terrenos, mapa y cruce). Ninguna combinación gana en todas.
+- [ ] **Conclusiones** (sección 5, 7 ideas) y limitaciones.
+
+### 2. Verificar antes de entregar
+
+- [ ] **En el artículo de WOA** (Mirjalili y Lewis, 2016):
   - [ ] Su tabla de resultados: Sphere ~1e-30, Rosenbrock ~28, Rastrigin 0
-        (sección 4.5 del reporte de referencia).
+        (sección 4.5 de la guía).
   - [ ] Que use 500 vueltas y 30 ballenas.
   - [ ] Que use los rangos ±100 (Sphere) y ±30 (Rosenbrock).
-- [ ] **Verificar las referencias opcionales** antes de citarlas: Kudela
-      (2022) y Wolpert y Macready (1997).
-- [ ] **Practicar un movimiento a mano** en la pestaña *Paso a paso* (uno de
-      cada tipo: rodear, buscar y espiral) para poder explicarlo.
-- [ ] (Opcional) Tomar capturas de la *Simulación 3D* o de *Comparar* si
-      quieren figuras extra en el reporte.
-- [ ] **Tiempo de ejecución** (sugerencia del profe, 21 de noviembre de
-      2026): la app ya lo muestra en *Una corrida*, *Simulación 3D* (al
-      terminar la animación y abajo de ella), *Comparar*, *Sesgo al centro*
-      y *Muchas corridas*; las tablas de `resultados/` ya traían
-      `tiempo_medio_s`. Falta comentarlo en el reporte (por ejemplo: más
-      ballenas o más vueltas = más tiempo; ¿vale la pena?).
+- [ ] **Referencias opcionales** antes de citarlas: Kudela (2022) y Wolpert
+      y Macready (1997). La sección 4.6 cita a Wolpert y Macready.
+- [ ] **Confirmar con el profe el uso de IA.** Si solo la permitió para la
+      interfaz, `algoritmo/woa.py` también lo generó la IA: confirmen que
+      está bien o reescríbanlo ustedes (unas 50 líneas).
 
-- [ ] **Figura resumen de cajas** (21 de noviembre de 2026):
-      `resultados/7_panorama/cajas.png` junta las 25 gráficas de caja en una
-      sola (filas = funciones, columnas = parámetros; franja azul = valor
-      por defecto). En la app está interactiva en la pestaña *Todas las
-      cajas*. Pueden usarla en el reporte en lugar de varias de las
-      figuras 2 a 10 y dejar las sueltas solo en el anexo.
+### 3. Prepararse para explicarlo
 
-- [ ] **Mejor combinación por función** (21 de noviembre de 2026):
-      `resultados/8_combinaciones/` y la pestaña *Mejor combinación*. 81
-      combinaciones (a × b × p × 3 repartos del mismo esfuerzo), 25 corridas
-      cada una. Para el reporte: `cruce.png` muestra que la ganadora de una
-      función no sirve para todas (la de Beale queda 73 de 81 en Rastrigin).
-      La de por defecto nunca queda entre las 20 mejores. Discútanlo con sus
-      palabras. La guía ya tiene la **sección 4.6** (visual: terrenos.png,
-      mapa.png y cruce.png, con fichas por función y pistas del por qué).
+- [ ] **Practicar un movimiento a mano** en *Ver el algoritmo › Paso a
+      paso* (uno de cada tipo: rodear, buscar y espiral).
+- [ ] (Opcional) Capturas de *Simulación 3D* o *Comparar* si quieren
+      figuras extra.
 
 ## Técnico
 
-- [x] Subir los cambios a GitHub (19 de noviembre de 2026).
 - [ ] **Diana:** después de `git pull`, correr
-      `python -m pip install -r requirements.txt` (se agregó `plotly`).
-- [x] Textos de las gráficas de `experimentos.py` cambiados a los de la
-      app ("Vuelta", "mejor valor") y `resultados/` regenerado: los números
-      salieron idénticos (21 de noviembre de 2026).
-- [x] *Muchas corridas* y *Sesgo al centro* calculan cuánto van a tardar
-      y, si pasa de un minuto, piden confirmar antes de correr.
-- [x] Por qué Rosenbrock se atora en ~8.9: las corridas atoradas terminan
-      pegadas al centro (0, …, 0), donde vale 9 (sesgo al centro). Con
-      `a = 3` ninguna se atora. Sección 4.4 de la guía y
-      `resultados/6_sesgo_centro/rosenbrock.png`.
-- [x] App reorganizada en 5 secciones con subsecciones (21 de noviembre de
-      2026).
-- [x] `python experimentos.py` actualiza también la guía del reporte: las
-      tablas del Anexo A se reescriben solas y avisa si algún número del
-      texto ya no coincide (`--solo-reporte` para hacer solo eso).
+      `python -m pip install -r requirements.txt`.
+- [ ] (Opcional) Si cambian algo del algoritmo o de los experimentos:
+      `python experimentos.py` (~20 min) regenera todo y avisa qué números
+      del texto de la guía hay que corregir a mano.
 
 ## Ya comprobado (no hace falta revisarlo otra vez)
 
+- [x] **Pruebas de humo (21 de noviembre de 2026):**
+  - [x] 292 pruebas automáticas rápidas: todas pasan.
+  - [x] App en el navegador: las 14 pestañas cargan con las 5 funciones sin
+        errores; los 3 botones **Correr** (Una corrida, Muchas corridas,
+        Sesgo al centro) funcionan.
+  - [x] `python experimentos.py --rapido` corre completo (62 archivos) y no
+        toca la guía.
+  - [x] Regenerar todo `resultados/` da los mismos 30 CSV (solo cambia el
+        tiempo). La guía se actualiza sola y sus números coinciden.
+- [x] Textos de las gráficas de `experimentos.py` como los de la app.
+- [x] *Muchas corridas* y *Sesgo al centro* avisan si van a tardar más de
+      un minuto.
+- [x] Por qué Rosenbrock se atora en ~8.9 (sesgo al centro), comprobado.
+- [x] App reorganizada en 5 secciones con subsecciones.
+- [x] `python experimentos.py` actualiza también la guía del reporte.
 - [x] Las 5 funciones dan los valores correctos en puntos calculados a mano.
 - [x] Cada movimiento de cada ballena sigue su fórmula (recalculado a mano).
 - [x] La frecuencia de rodear/buscar/espiral coincide con la teoría.

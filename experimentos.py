@@ -538,6 +538,7 @@ def main():
         print("\n(--rapido: con 5 corridas los numeros no son los del "
               "reporte, asi que la guia NO se actualizo)")
     else:
+        figura_tiempo_calidad(plt)        # sale de los CSV, no corre nada
         avisar_reporte()
 
 
@@ -557,6 +558,81 @@ def avisar_reporte():
             print("   - " + m)
     else:
         print("  todos los numeros escritos a mano siguen coincidiendo")
+
+
+def figura_tiempo_calidad(plt, res="resultados"):
+    """Tiempo contra calidad, desde los CSV de los barridos de vueltas y de
+    ballenas (no corre nada). Eje x = esfuerzo (ballenas x vueltas), que es
+    exacto; arriba, los segundos aproximados (el tiempo medido tiene ruido)."""
+    ruta = os.path.join(res, "0_base", "tiempo_calidad.png")
+    nombres = list(FUNCIONES)
+    fig, axs = plt.subplots(1, len(nombres), figsize=(18, 4.4))
+    series = [("max_iter", "más vueltas (30 ballenas)", "#5e3c99", "o"),
+              ("n_ballenas", "más ballenas (200 vueltas)", "#8c510a", "s")]
+    nd, md = PARAMS_DEFAULT["n_ballenas"], PARAMS_DEFAULT["max_iter"]
+    for k, (ax, nom) in enumerate(zip(axs, nombres), start=1):
+        datos, seg_por_mov = {}, []
+        for par, *_ in series:
+            df = pd.read_csv(os.path.join(res, f"{k}_{nom}", f"{par}.csv"))
+            if par == "max_iter":
+                movs = nd * df[par].to_numpy()
+            else:
+                movs = df[par].to_numpy() * md
+            datos[par] = (movs, df["mediana"].to_numpy(), df[par].to_numpy())
+            seg_por_mov += list(df["tiempo_medio_s"].to_numpy() / movs)
+        todos = np.concatenate([d[1] for d in datos.values()])
+        pos = todos[todos > 0]
+        piso = 10.0 ** (np.floor(np.log10(pos.min())) - 1) if len(pos) \
+            else 1e-16
+        for par, et, color, marca in series:
+            movs, med, vals = datos[par]
+            ax.plot(movs, np.maximum(med, piso), marker=marca, color=color,
+                    lw=2, ms=7, label=et)
+            for x, y, v in zip(movs, np.maximum(med, piso), vals):
+                if x != nd * md:
+                    ax.annotate(f"{int(v)}", (x, y), xytext=(0, 7),
+                                textcoords="offset points", ha="center",
+                                fontsize=8, color=color)
+        ax.plot([nd * md], [max(datos["max_iter"][1][
+            list(datos["max_iter"][2]).index(md)], piso)], "*", ms=16,
+            color="#2b8cbe", mec="white", zorder=5, label="por defecto")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        if (todos <= 0).any():
+            ks = np.arange(np.ceil(np.log10(piso)) + 1,
+                           np.floor(np.log10(max(todos.max(), piso * 10)))
+                           + 1)
+            ks = ks[::max(1, int(np.ceil(len(ks) / 5)))]
+            ax.axhline(piso, color="gray", lw=0.8, ls=":")
+            ax.set_yticks([piso] + [10.0 ** e for e in ks],
+                          ["0"] + [f"$10^{{{int(e)}}}$" for e in ks])
+            ax.minorticks_off()
+        ax.set_title(nom, fontweight="bold")
+        marcas = [1500, 3000, 6000, 10000, 20000]
+        ax.set_xticks(marcas, [f"{m:,}" for m in marcas], fontsize=8)
+        ax.minorticks_off()
+        ax.set_xlim(1200, 25000)
+        ax.set_xlabel("esfuerzo (ballenas × vueltas)")
+        ax.grid(alpha=0.3)
+        s = float(np.median(seg_por_mov))      # segundos por movimiento
+        arriba = ax.secondary_xaxis("top", functions=(lambda m, s=s: m * s,
+                                                      lambda t, s=s: t / s))
+        segs = [t for t in (0.01, 0.02, 0.05, 0.1, 0.2, 0.5)
+                if 1200 * s <= t <= 25000 * s]
+        arriba.set_xticks(segs, [f"{t:g} s" for t in segs])
+        arriba.minorticks_off()
+        arriba.set_xlabel("≈ segundos por corrida", fontsize=8.5)
+        arriba.tick_params(labelsize=8)
+    axs[0].set_ylabel("mediana del mejor valor (log)")
+    manijas, textos = axs[0].get_legend_handles_labels()
+    fig.legend(manijas, textos, loc="lower center", ncol=3, fontsize=10,
+               bbox_to_anchor=(0.5, -0.1), frameon=False)
+    fig.suptitle("¿Vale la pena gastar más tiempo? Más a la derecha = más "
+                 "tiempo; más abajo = mejor resultado (30 corridas por punto)",
+                 fontsize=12, y=1.05)
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=130, bbox_inches="tight")
+    plt.close(fig)
 
 
 def generar_todo(n, n_comb, plt):
