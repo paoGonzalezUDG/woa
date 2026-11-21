@@ -39,6 +39,15 @@ div[data-testid="stTabs"] div[data-testid="stTabs"] [data-testid="stTab"] p {
     font-size: 0.92rem; font-weight: 500; }
 div[data-testid="stTabs"] div[data-testid="stTabs"]
         .react-aria-SelectionIndicator { display: none; }
+.woa-cargando {
+    display: flex; align-items: center; gap: 0.7rem;
+    padding: 0.6rem 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem;
+    background: rgba(255, 75, 75, 0.12); font-size: 0.95rem; }
+.woa-rueda {
+    width: 1.1rem; height: 1.1rem; flex: none; border-radius: 50%;
+    border: 3px solid rgba(255, 75, 75, 0.25); border-top-color: #ff4b4b;
+    animation: woa-girar 0.8s linear infinite; }
+@keyframes woa-girar { to { transform: rotate(360deg); } }
 </style>""", unsafe_allow_html=True)
 
 CARPETA_APP = os.path.dirname(os.path.abspath(__file__))
@@ -66,13 +75,64 @@ COLUMNAS_NUMERO = ["Promedio", "Variación", "Mediana", "Mejor", "Peor",
                    "Distancia al mínimo real", "Distancia al centro (0)"]
 
 
+# Lo que sale al pasar el mouse por el encabezado de cada columna
+AYUDA_COLUMNA = {
+    "Mejor": "La corrida que MEJOR salió de todas: el número más chico, el "
+             "más cerca del mínimo. 0 = esa corrida llegó exacto.",
+    "Peor": "La corrida que PEOR salió de todas: el número más grande. Dice "
+            "qué tan mal puede salir con mala suerte. Si también es casi 0, "
+            "el algoritmo es confiable.",
+    "Mediana": "La corrida típica: la de en medio si ordenas todas las "
+               "corridas de mejor a peor. Las corridas raras no la mueven.",
+    "Promedio": "La suma de todas las corridas entre cuántas son. Una sola "
+                "corrida mala lo jala hacia arriba (por eso también vemos la "
+                "mediana).",
+    "Variación": "Qué tan distintas salieron las corridas entre sí "
+                 "(desviación estándar). 0 = todas dieron lo mismo.",
+    "Seg. por corrida": "Cuánto tardó cada corrida, en promedio, en esta "
+                        "computadora. Cambia un poco cada vez.",
+    "Distancia al mínimo real": "Qué tan lejos quedó, en promedio, el mejor "
+                                "punto encontrado del verdadero mínimo.",
+    "Distancia al centro (0)": "Qué tan lejos quedó, en promedio, el mejor "
+                               "punto encontrado del centro (0, ..., 0).",
+    "Mínimo en": "Dónde está el mínimo en cada eje: 0 = en el centro "
+                 "(original); otro número = movido de lugar.",
+    "Caso": "Original = la función normal; movida = la misma función con el "
+            "mínimo en otro lugar.",
+    "Lugar": "Posición de esta combinación entre todas (1 = la mejor). Se "
+             "ordenan por mediana; si empatan, por promedio y luego por la "
+             "peor corrida.",
+    "Ballenas × vueltas": "Cómo se repartió el mismo esfuerzo (6,000 "
+                          "movimientos) entre ballenas y vueltas.",
+    "¿Por defecto?": "Marcada = la combinación de los valores normales "
+                     "(30 × 200, a = 2, b = 1, p = 0.5).",
+}
+
+
+def num_corto(x):
+    """0 se ve como 0 (no 0.00e+00); lo demas en notacion cientifica."""
+    return "0" if x == 0 else f"{x:.2e}"
+
+
 def tabla_bonita(df):
     """Renombra columnas a lenguaje sencillo y formatea los numeros."""
     df = df.rename(columns=NOMBRE_COLUMNA)
-    fmt = {c: "{:.2e}" for c in COLUMNAS_NUMERO if c in df}
+    fmt = {c: num_corto for c in COLUMNAS_NUMERO if c in df}
     if "Seg. por corrida" in df:
         fmt["Seg. por corrida"] = "{:.3f}"
+    for c in ("Exploración inicial (a)", "Apertura de la espiral (b)",
+              "Umbral rodear/espiral (p)"):
+        if c in df:
+            fmt[c] = "{:g}"
     return df.style.format(fmt)
+
+
+def mostrar_tabla(df):
+    """Tabla con nombres sencillos y un (i) en cada encabezado conocido."""
+    t = tabla_bonita(df)
+    st.dataframe(t, hide_index=True, column_config={
+        c: st.column_config.Column(help=AYUDA_COLUMNA[c])
+        for c in t.data.columns if c in AYUDA_COLUMNA})
 
 
 def mostrar(fig):
@@ -89,6 +149,11 @@ COMO_LEER_NUMEROS = """
   20 (lo jala la corrida mala) pero la mediana es 1 (la corrida típica). Por
   eso conviene ver las dos.
 - **Variación**: qué tan distintas salieron las corridas entre sí.
+- **Mejor y peor**: la corrida que mejor salió y la que peor salió. Por
+  ejemplo, en Beale la mediana es casi 0 pero la peor es 0.76: casi siempre
+  sale bien, pero a veces se atora. Si la peor también es casi 0, el
+  algoritmo es confiable.
+- Pasa el mouse sobre el nombre de cada columna para ver qué significa.
 """
 COMO_LEER_CAJAS = """
 - **Cajas:** una por cada valor probado. La línea naranja es la mediana, la
@@ -176,6 +241,29 @@ st.sidebar.button("Volver a los valores por defecto",
 params = dict(n_ballenas=int(n_ballenas), max_iter=int(max_iter),
               a_inicial=a_inicial, b=b, p_umbral=p_umbral)
 
+CORTO_AJUSTE = {"n_ballenas": "ballenas", "max_iter": "vueltas",
+                "a_inicial": "a", "b": "b", "p_umbral": "p"}
+
+
+def texto_ajustes(nom, d, p, semilla, zona=None, cambia=None):
+    """Una linea con los ajustes usados, para que cada captura diga con que
+    parametros salio. En negritas lo que NO esta en su valor por defecto;
+    'cambia' = el ajuste que se esta variando (se escribe aparte)."""
+    partes = [f"**{nom}**"] + ([] if cambia == "dim" else [f"{d} variables"])
+    for k in ("n_ballenas", "max_iter", "a_inicial", "b", "p_umbral"):
+        if k == cambia:
+            continue
+        v, dfl = p[k], PARAMS_DEFAULT[k]
+        txt = (f"{v:g} {CORTO_AJUSTE[k]}" if k in ("n_ballenas", "max_iter")
+               else f"{CORTO_AJUSTE[k]} = {v:g}")
+        partes.append(f"**{txt}** (normal {dfl:g})"
+                      if not np.isclose(v, dfl) else txt)
+    partes.append(f"semilla {semilla}")
+    cfg_n = FUNCIONES[nom]
+    if zona and (zona[0] != cfg_n["lb"] or zona[1] != cfg_n["ub"]):
+        partes.append(f"**zona {zona[0]:g} a {zona[1]:g}**")
+    return "⚙️ Ajustes: " + " · ".join(partes)
+
 st.sidebar.divider()
 st.sidebar.caption("Colores de las ballenas: :blue[azul = rodear], "
                    ":orange[naranja = buscar], :green[verde = espiral], "
@@ -189,6 +277,22 @@ if lb >= ub:
 st.title("El algoritmo de la ballena (WOA)")
 st.caption("Ballenas virtuales buscando el punto más bajo de 5 funciones "
            "matemáticas. Proyecto final.")
+
+# Precarga: se ve mientras se preparan las pestanas y se borra al terminar
+# (ultima linea del archivo). Usar parar() en lugar de st.stop() para que
+# no se quede pegado.
+cargando = st.empty()
+cargando.markdown(
+    '<div class="woa-cargando"><div class="woa-rueda"></div>'
+    "<div><b>Cargando…</b> preparando las gráficas y animaciones. Puede "
+    "tardar unos segundos; cuando desaparezca este aviso, todo está listo."
+    "</div></div>", unsafe_allow_html=True)
+
+
+def parar():
+    cargando.empty()
+    st.stop()
+
 
 # 5 secciones; las que tienen varias partes llevan sus propias pestanas.
 SECCIONES = {
@@ -426,14 +530,17 @@ with tab1:
     st.write("Corre el algoritmo **una vez**, de principio a fin, con los "
              "ajustes de la izquierda.")
     if st.button("Correr", type="primary"):
-        t0 = time.perf_counter()
-        res = woa(cfg["f"], lb, ub, int(dim), seed=int(seed),
-                  guardar_posiciones=True, **params)
-        res["tiempo"] = time.perf_counter() - t0
-        st.session_state["res"] = (res, nombre, int(dim), lb, ub)
+        with st.spinner("Corriendo el algoritmo..."):
+            t0 = time.perf_counter()
+            res = woa(cfg["f"], lb, ub, int(dim), seed=int(seed),
+                      guardar_posiciones=True, **params)
+            res["tiempo"] = time.perf_counter() - t0
+        st.session_state["res"] = (res, nombre, int(dim), lb, ub,
+                                   dict(params), int(seed))
 
     if "res" in st.session_state:
-        res, nom_r, dim_r, lb_r, ub_r = st.session_state["res"]
+        res, nom_r, dim_r, lb_r, ub_r, par_res, seed_r = \
+            st.session_state["res"]
         cfg_r = FUNCIONES[nom_r]
         x_opt = cfg_r["optimo_x"](dim_r)
         c1, c2, c3 = st.columns(3)
@@ -446,7 +553,9 @@ with tab1:
                        "verdadero mínimo de la función.")
         c3.metric("Tiempo de ejecución", visual.texto_tiempo(res["tiempo"]),
                   help=AYUDA_TIEMPO)
-        st.caption(f"{nom_r} con {dim_r} variables. Mejor punto encontrado: "
+        st.markdown(texto_ajustes(nom_r, dim_r, par_res, seed_r,
+                                  (lb_r, ub_r)))
+        st.caption("Mejor punto encontrado: "
                    f"`{np.array2string(res['mejor_x'], precision=4)}`")
 
         col_a, col_b = st.columns(2)
@@ -548,8 +657,9 @@ with tab_3d:
                  "para ver si llegó directo o si saltó de un valle a otro.")
 
     if not es_pesado(params):
-        res_3d = corrida(nombre, 2, lb, ub, int(seed), 0.0, **params)
-        with st.spinner("Preparando la simulación..."):
+        with st.spinner("Corriendo el algoritmo..."):
+            res_3d = corrida(nombre, 2, lb, ub, int(seed), 0.0, **params)
+        with st.spinner("Preparando la simulación 3D..."):
             t0 = time.perf_counter()
             fig_3d = visual3d.figura_3d(
                 cfg["f"], lb, ub, res_3d, cfg["optimo_x"](2), log=log_3d,
@@ -559,6 +669,8 @@ with tab_3d:
             t_dibujo = time.perf_counter() - t0
         # Se muestra como pagina propia (no st.plotly_chart) para poder agregar
         # el JavaScript que deja girar la grafica mientras se reproduce.
+        st.markdown(texto_ajustes(nombre, int(dim), params, int(seed),
+                                  (lb, ub)))
         st.iframe(visual3d.html_3d(fig_3d), height=fig_3d.layout.height + 10)
         st.markdown(
             f"⏱ **Tiempo de ejecución del algoritmo:** "
@@ -586,9 +698,11 @@ with tab_pp:
     st.write("Congela **una ballena en una vuelta** y te muestra, con los "
              "números reales, cómo decidió moverse.")
     aviso_2d()
+    st.markdown(texto_ajustes(nombre, int(dim), params, int(seed), (lb, ub)))
     if not es_pesado(params):
         p_t = tuple(sorted(params.items()))
-        det = corrida_detallada(nombre, lb, ub, int(seed), p_t)
+        with st.spinner("Calculando los números de cada ballena..."):
+            det = corrida_detallada(nombre, lb, ub, int(seed), p_t)
         iters = det["iteraciones"]
         T, N = len(iters), params["n_ballenas"]
         # Si cambian los ajustes, regresar al inicio
@@ -691,13 +805,18 @@ with tab2:
         return (tuple(sorted(p.items())), 0.0, f"{CORTO_PARAM[par_c]} = {v:g}")
 
     configs = (config(vA), config(vB))
+    st.markdown(texto_ajustes(nombre, int(dim), params, int(seed), (lb, ub),
+                              cambia=par_c)
+                + f" · se compara **{CORTO_AJUSTE[par_c]}**: A = {vA:g}, "
+                  f"B = {vB:g}")
     st.info("**Qué observar:** " + QUE_OBSERVAR[par_c])
     modo = st.radio("Vista", ["Animación", "Pausar en un momento"],
                     horizontal=True, key="modo_c",
                     label_visibility="collapsed")
 
     if not es_pesado(*(dict(c[0]) for c in configs)):
-        casos = armar_casos(nombre, lb, ub, int(seed), configs)
+        with st.spinner("Corriendo las dos versiones..."):
+            casos = armar_casos(nombre, lb, ub, int(seed), configs)
         if modo == "Animación":
             with st.spinner("Preparando la animación (la primera vez tarda "
                             "unos segundos)..."):
@@ -754,7 +873,7 @@ with tab3:
             valores = [float(v) for v in texto.split(",") if v.strip()]
         except ValueError:
             st.error("Revisa los valores: deben ser números separados por "
-                     "comas, por ejemplo 10, 30, 50."); st.stop()
+                     "comas, por ejemplo 10, 30, 50."); parar()
         if par in ("n_ballenas", "max_iter", "dim"):
             valores = [int(v) for v in valores]
         fijos = {k: v for k, v in params.items() if k != par}
@@ -762,12 +881,16 @@ with tab3:
             df, fin, cur = barrido(nombre, par, valores,
                                    n_corridas=int(n_corridas),
                                    dim=int(dim), lb=lb, ub=ub, **fijos)
-        st.session_state["exp"] = (df, fin, cur, par, nombre)
+        st.session_state["exp"] = (df, fin, cur, par, nombre,
+                                   (int(dim), dict(params), (lb, ub)))
 
     if "exp" in st.session_state:
-        df, fin, cur, par_r, nom_r = st.session_state["exp"]
+        df, fin, cur, par_r, nom_r, (d_e, p_e, z_e) = st.session_state["exp"]
         st.markdown(f"#### {nom_r}: efecto de {NOMBRE_PARAM[par_r].lower()}")
-        st.dataframe(tabla_bonita(df), hide_index=True)
+        st.markdown(texto_ajustes(nom_r, d_e, p_e, "0, 1, 2, …", z_e,
+                                  cambia=par_r)
+                    + " · lo demás fijo")
+        mostrar_tabla(df)
         vals = list(fin)
         col_a, col_b = st.columns(2)
         with col_a:
@@ -820,7 +943,8 @@ with tab4:
                       horizontal=True, key="modo_s",
                       label_visibility="collapsed")
     if not es_pesado(params):
-        casos_s = armar_casos(nombre, lb, ub, int(seed), configs_s)
+        with st.spinner("Corriendo la función original y la movida..."):
+            casos_s = armar_casos(nombre, lb, ub, int(seed), configs_s)
         if modo_s == "Animación":
             with st.spinner("Preparando la animación..."):
                 st.image(gif_cacheado(nombre, lb, ub, int(seed), configs_s),
@@ -876,12 +1000,14 @@ Tablas y descargas › Sesgo al centro*.
                                   dist_optimo=np.mean(dist_opt),
                                   dist_centro=np.mean(dist_0),
                                   tiempo_medio_s=np.mean(tiempos)))
-        st.session_state["sesgo"] = (pd.DataFrame(filas), datos, nombre, d)
+        st.session_state["sesgo"] = (pd.DataFrame(filas), datos, nombre, d,
+                                     dict(params), (lb, ub), s)
 
     if "sesgo" in st.session_state:
-        df_s, datos, nom_s, d_s = st.session_state["sesgo"]
-        st.caption(f"{nom_s} con {d_s} variables")
-        st.dataframe(tabla_bonita(df_s), hide_index=True)
+        df_s, datos, nom_s, d_s, p_s, z_s, s_s = st.session_state["sesgo"]
+        st.markdown(texto_ajustes(nom_s, d_s, p_s, "0, 1, 2, …", z_s)
+                    + f" · mínimo movido {s_s:g} en cada eje")
+        mostrar_tabla(df_s)
         fig, ax = plt.subplots(figsize=(6, 3.8))
         ax.boxplot(list(datos.values()), tick_labels=list(datos))
         ax.set_yscale("symlog", linthresh=1e-12)
@@ -920,7 +1046,7 @@ def mostrar_archivo(ruta, clave):
     with open(ruta, "rb") as fh:
         datos = fh.read()
     if ruta.endswith(".csv"):
-        st.dataframe(tabla_bonita(pd.read_csv(ruta)), hide_index=True)
+        mostrar_tabla(pd.read_csv(ruta))
         st.download_button(f"Descargar tabla ({nombre_arch})", datos,
                            nombre_arch, "text/csv", key=f"dl_{clave}")
     elif ruta.endswith(".png"):
@@ -1068,13 +1194,16 @@ mismo trabajo. Así la comparación es justa.
         t_comb = combinaciones.tabla(d_comb, PARAMS_DEFAULT).rename(columns={
             "lugar": "Lugar", "reparto": "Ballenas × vueltas",
             "por_defecto": "¿Por defecto?"})
-        st.dataframe(tabla_bonita(t_comb), hide_index=True)
+        mostrar_tabla(t_comb)
 
         st.markdown("##### ¿La mejor de una función sirve para las demás?")
-        st.caption("Cada fila es la combinación ganadora de una función. Los "
-                   "números son el lugar que saca en cada función (1 = la "
-                   f"mejor, {total_comb} = la peor). Verde = buen lugar, rojo "
-                   "= mal lugar.")
+        st.caption("Cada **fila** es una combinación de ajustes (la que "
+                   "ganó en una función, y la de por defecto). Cada "
+                   "**columna** es una función donde se probó. Los números "
+                   f"son el **lugar** que saca ahí (1 = la mejor, "
+                   f"{total_comb} = la peor), no ballenas ni vueltas. "
+                   "\"10×600\" = 10 ballenas × 600 vueltas. Verde = buen "
+                   "lugar, rojo = mal lugar.")
         st.plotly_chart(
             combinaciones.figura_cruce(df_comb, list(FUNCIONES),
                                        PARAMS_DEFAULT, total_comb),
@@ -1183,3 +1312,5 @@ with tab_rep:
         st.download_button("Descargar la guía (.md)", texto_rep,
                            "reporte_referencia.md", "text/markdown")
         mostrar_markdown(texto_rep, os.path.dirname(ARCHIVO_REPORTE))
+
+cargando.empty()      # todo listo: quitar el aviso de "Cargando..."

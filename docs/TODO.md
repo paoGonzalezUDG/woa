@@ -42,7 +42,9 @@ navegador con las 5 funciones: 0 errores).
 - [ ] **Practicar un movimiento a mano** en *Ver el algoritmo › Paso a
       paso* (uno de cada tipo: rodear, buscar y espiral).
 - [ ] (Opcional) Capturas de *Simulación 3D* o *Comparar* si quieren
-      figuras extra.
+      figuras extra. Cada pestaña muestra una línea **⚙️ Ajustes** con los
+      parámetros usados (en negritas los que no son los de por defecto):
+      inclúyanla en la captura o escríbanla en el pie de figura.
 
 ## Técnico
 

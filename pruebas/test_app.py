@@ -107,6 +107,23 @@ def test_una_corrida_muestra_lo_mismo_que_el_algoritmo(app, nombre):
     assert at.metric[2].value.endswith(" s")
 
 
+def test_una_corrida_dice_con_que_ajustes_salio(app):
+    at = elegir_funcion(app, "Rastrigin")
+    at.sidebar.number_input(key="sb_ballenas").set_value(20).run()
+    boton(at, "Correr", key=None).click().run()
+    _sin_errores(at)
+    linea = [t for t in _textos(at.markdown) if t.startswith("⚙️ Ajustes:")]
+    at.sidebar.number_input(key="sb_ballenas").set_value(30).run()  # la app
+    # de las pruebas es compartida: dejarla como estaba
+    assert linea, "falta la linea de ajustes"
+    # la de Una corrida es la que trae los ajustes de esa corrida
+    assert any("⚙️ Ajustes: **Rastrigin** · 10 variables · **20 ballenas** (normal 30) · "
+               "200 vueltas · a = 2 · b = 1 · p = 0.5 · semilla 0" == t
+               for t in linea), linea
+    assert at.metric[0].value == "0.00e+00"
+    assert at.metric[1].value == "6.88e-09"          # la captura del usuario
+
+
 @pytest.mark.parametrize("nombre", FUNC)
 def test_simulacion_3d(app, nombre):
     at = elegir_funcion(app, nombre)
@@ -338,6 +355,22 @@ def test_pestana_todas_las_cajas(app, ver, puntos):
     assert len(cajas_fig) == n_func * 17          # 4+4+3+3+3 valores
     defecto = [t for t in cajas_fig if "por defecto" in t["name"]]
     assert len(defecto) == n_func * 5
+
+
+def test_tablas_explican_sus_columnas(app):
+    """Cada tabla trae un (i) en Mejor, Peor, Mediana... al pasar el mouse."""
+    at = app
+    at.selectbox(key="res_carpeta").set_value("0_base").run()
+    _sin_errores(at)
+    assert at.dataframe, "no hay tablas"
+    vistas = set()
+    for tabla in at.dataframe:
+        cfg = json.loads(tabla.proto.columns)
+        for col in ("Mejor", "Peor", "Mediana", "Promedio", "Variación"):
+            if col in cfg:
+                assert cfg[col].get("help"), (col, "sin ayuda")
+                vistas.add(col)
+    assert {"Mejor", "Peor", "Mediana"} <= vistas      # la tabla de 0_base
 
 
 @pytest.mark.parametrize("nombre", FUNC)

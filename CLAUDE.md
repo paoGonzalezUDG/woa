@@ -47,6 +47,13 @@ Correr todo desde la raiz del proyecto.
   Resultados: Todas las cajas, Mejor combinacion, Tablas y descargas |
   Reporte. CSS al inicio: secciones grandes, subsecciones como botones
   (selectores `[data-testid=stTab]`, streamlit 1.65). Solo UI.
+  `texto_ajustes()` pone una linea "⚙️ Ajustes: ..." (lo distinto al valor
+  por defecto en negritas) en Una corrida, 3D, Paso a paso, Comparar, Muchas
+  corridas y Sesgo, para que cada captura diga con que parametros salio.
+  Precarga: `cargando = st.empty()` arriba de las pestanas con un aviso
+  animado (CSS `.woa-cargando`); la ultima linea del archivo lo borra. Usar
+  `parar()` en vez de `st.stop()` despues de ese punto (si no, el aviso se
+  queda pegado).
   `confirmar_espera()` pide confirmar si Muchas corridas / Sesgo al centro
   tardarian mas de 1 min (`SEG_POR_MOVIMIENTO`).
   Ajustes del sidebar con key `sb_*` inicializados en session_state (sin

@@ -114,12 +114,12 @@ def cruce(df, nombres, por_defecto):
         g = d.iloc[0]
         n_emp = int((d.lugar == 1).sum())
         elegidas.append(g)
-        etiquetas.append(f"Mejor en {nom}" + (f" (empata con {n_emp - 1})"
-                                             if n_emp > 1 else "")
-                         + f": {texto(g)}")
+        etiquetas.append(f"<b>La mejor en {nom}</b>"
+                         + (f" (empata con {n_emp - 1})" if n_emp > 1 else "")
+                         + f"<br>{texto(g)}")
     g = df[es_default(df, por_defecto)].iloc[0]
     elegidas.append(g)
-    etiquetas.append(f"Por defecto: {texto(g)}")
+    etiquetas.append(f"<b>La de por defecto</b><br>{texto(g)}")
     for g in elegidas:
         m = np.ones(len(df), bool)
         for k in CLAVES:
@@ -134,13 +134,20 @@ def figura_cruce(df, nombres, por_defecto, total):
     fig = go.Figure(go.Heatmap(
         z=t.values, x=nombres, y=etiquetas, zmin=1, zmax=total,
         colorscale="RdYlGn", reversescale=True, showscale=False,
-        text=t.values, texttemplate="%{text}", textfont=dict(size=15),
-        hovertemplate="%{y}<br>en %{x}: lugar %{z} de " + str(total)
-                      + "<extra></extra>"))
-    fig.update_yaxes(autorange="reversed")
-    fig.update_xaxes(side="top")
-    fig.update_layout(height=90 + 55 * len(etiquetas),
-                      margin=dict(l=10, r=10, t=40, b=10),
+        text=t.values, texttemplate="lugar %{text}",
+        textfont=dict(size=14),
+        hovertemplate="%{y}<br>Probada en <b>%{x}</b>: queda en el lugar "
+                      "%{z} de " + str(total) + "<extra></extra>"))
+    fig.update_yaxes(autorange="reversed", automargin=True,
+                     title_text="Combinación de ajustes")
+    fig.update_xaxes(side="top", title_text="Función donde se probó",
+                     title_standoff=4)
+    fig.update_layout(height=140 + 62 * len(etiquetas),
+                      title=dict(text=f"Lugar que saca cada combinación en "
+                                      f"cada función (1 = la mejor, {total} "
+                                      f"= la peor)", x=0.5, y=0.99,
+                                 font=dict(size=14)),
+                      margin=dict(l=10, r=10, t=90, b=10),
                       paper_bgcolor="white", plot_bgcolor="white",
                       font=dict(color="#222"))
     return fig
