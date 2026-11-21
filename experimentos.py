@@ -1,11 +1,16 @@
 """
 Utilidades para correr experimentos con WOA y script para generar los
 resultados del reporte (tablas CSV y graficas PNG en la carpeta resultados/).
+Al terminar SIEMPRE actualiza la guia del reporte (tablas del Anexo A) y
+avisa si algun numero escrito a mano en el texto ya no coincide.
 
-Uso:  python experimentos.py            (corre todo; tarda unos minutos)
-      python experimentos.py --rapido   (menos corridas, para probar)
-      python experimentos.py --solo-panorama  (solo la figura 7_panorama)
-      python experimentos.py --solo-combinaciones  (8_combinaciones, ~15 min)
+Uso:  python experimentos.py            (corre todo y actualiza; ~20 min)
+      python experimentos.py --rapido   (5 corridas, para probar; no toca
+                                         la guia)
+      python experimentos.py --solo-sesgo          (6_sesgo_centro)
+      python experimentos.py --solo-panorama       (7_panorama)
+      python experimentos.py --solo-combinaciones  (8_combinaciones, ~12 min)
+      python experimentos.py --solo-reporte        (solo la guia, al instante)
 """
 import argparse
 import os
@@ -108,16 +113,101 @@ def experimento_sesgo(n, plt):
             filas.append({"funcion": nombre, "caso": caso,
                           "optimo_en": sv, "dim": dim, **resumen(fin)})
             datos.append(fin)
-        ax.boxplot(datos, tick_labels=["optimo en 0", f"optimo en {s:g}"])
+        ax.boxplot(datos, tick_labels=["mínimo en el centro",
+                                       f"mínimo movido {s:g}"])
         ax.set_yscale("symlog", linthresh=1e-12)
         ax.set_title(f"{nombre} ({dim} variables)")
-    axs[0].set_ylabel("Mejor fitness final")
-    fig.suptitle("Misma funcion, optimo movido de lugar (sesgo al centro)")
+    axs[0].set_ylabel("Mejor valor final")
+    fig.suptitle("Misma función, mínimo movido de lugar (sesgo al centro)")
     fig.tight_layout()
     fig.savefig(f"{carpeta}/comparacion.png", dpi=130)
     plt.close(fig)
     pd.DataFrame(filas).to_csv(f"{carpeta}/resumen.csv", index=False)
     print("sesgo al centro listo")
+
+
+# Rosenbrock (10 variables) vale 9 en el centro (0, ..., 0) y 0 en su
+# minimo (1, ..., 1). Se cuenta a donde llega cada corrida.
+CASOS_ROSENBROCK = [
+    ("Por defecto", {}),
+    ("500 vueltas", {"max_iter": 500}),
+    ("a = 3", {"a_inicial": 3.0}),
+    ("Mejor combinación", {"n_ballenas": 10, "max_iter": 600,
+                           "a_inicial": 3.0, "b": 0.5, "p_umbral": 0.8}),
+]
+RADIO_DESTINO = 0.5     # "llego a X" = quedo a menos de 0.5 de X
+
+
+def experimento_rosenbrock(n, plt, carpeta="resultados/6_sesgo_centro"):
+    os.makedirs(carpeta, exist_ok=True)
+    cfg = FUNCIONES["Rosenbrock"]
+    dim = cfg["dim_default"]
+    minimo = cfg["optimo_x"](dim)
+    filas, puntos = [], {}
+    for caso, cambios in CASOS_ROSENBROCK:
+        p = {**PARAMS_DEFAULT, **cambios}
+        d0, d1, fs = [], [], []
+        for k in range(n):
+            r = woa(cfg["f"], cfg["lb"], cfg["ub"], dim, seed=k, **p)
+            d0.append(np.linalg.norm(r["mejor_x"]))
+            d1.append(np.linalg.norm(r["mejor_x"] - minimo))
+            fs.append(r["mejor_f"])
+        d0, d1, fs = map(np.array, (d0, d1, fs))
+        centro = d0 < RADIO_DESTINO
+        bien = d1 < RADIO_DESTINO
+        filas.append({"caso": caso, **p, "corridas": n,
+                      "al_centro": int(centro.sum()),
+                      "al_minimo": int(bien.sum()),
+                      "otro": int((~centro & ~bien).sum()),
+                      "mediana": float(np.median(fs)),
+                      "valor_centro_min": float(fs[centro].min())
+                      if centro.any() else np.nan,
+                      "valor_centro_max": float(fs[centro].max())
+                      if centro.any() else np.nan})
+        puntos[caso] = (d0, d1)
+    df = pd.DataFrame(filas)
+    df.to_csv(f"{carpeta}/rosenbrock.csv", index=False)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 4.6),
+                                   gridspec_kw=dict(width_ratios=[1, 1.25]))
+    d0, d1 = puntos["Por defecto"]
+    ax1.scatter(d0, d1, s=45, color="#1f77b4", alpha=0.7,
+                edgecolor="white")
+    ax1.annotate("cerca del centro (0, …, 0)\nahí la función vale 9",
+                 (0.05, np.sqrt(dim)), xytext=(0.6, 2.2), fontsize=9,
+                 arrowprops=dict(arrowstyle="->", color="gray"))
+    ax1.annotate("cerca del mínimo real (1, …, 1)\nahí vale 0",
+                 (np.sqrt(dim), 0.05), xytext=(1.2, 0.9), fontsize=9,
+                 arrowprops=dict(arrowstyle="->", color="gray"))
+    ax1.set_xlabel("distancia al centro")
+    ax1.set_ylabel("distancia al mínimo real")
+    ax1.set_title(f"Por defecto: dónde termina cada una de las {n} corridas")
+    ax1.grid(alpha=0.3)
+    casos = list(df["caso"])
+    y = np.arange(len(casos))[::-1]
+    izq = np.zeros(len(casos))
+    for col, color, et in (("al_centro", "#d62728", "se atoró en el centro"),
+                           ("al_minimo", "#2ca02c", "llegó al mínimo real"),
+                           ("otro", "#bbbbbb", "otro lugar")):
+        v = df[col].to_numpy()
+        ax2.barh(y, v, left=izq, color=color, label=et, height=0.6,
+                 edgecolor="white")
+        for yi, xi, vi in zip(y, izq, v):
+            if vi:
+                ax2.text(xi + vi / 2, yi, str(vi), ha="center",
+                         va="center", color="white", fontweight="bold")
+        izq += v
+    ax2.set_yticks(y, casos)
+    ax2.set_xlabel(f"corridas (de {n})")
+    ax2.set_xlim(0, n)
+    ax2.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3,
+               fontsize=9, frameon=False)
+    fig.suptitle("Rosenbrock (10 variables): ¿por qué se atora en ~8.9?",
+                 fontsize=13, y=1.03)
+    fig.tight_layout()
+    fig.savefig(f"{carpeta}/rosenbrock.png", dpi=130, bbox_inches="tight")
+    plt.close(fig)
+    print("rosenbrock listo")
 
 
 # Nombres para la figura panorama (texto que se ve, con acentos)
@@ -254,91 +344,21 @@ def texto_combo(fila):
 
 def experimento_combinaciones(n, plt, carpeta="resultados/8_combinaciones"):
     os.makedirs(carpeta, exist_ok=True)
-    combos = combinaciones()
-    crudos, filas = [], []
+    filas = []
     for nombre in FUNCIONES:
-        for c in combos:
+        for c in combinaciones():
             fin, _, tie = correr(nombre, n_corridas=n, **c)
             filas.append({"funcion": nombre, **c, **resumen(fin, tie)})
-            crudos += [{"funcion": nombre, **c, "corrida": k,
-                        "mejor_f": float(x)} for k, x in enumerate(fin)]
         print(nombre, "combinaciones listo")
     res = ordenar_combinaciones(pd.DataFrame(filas))
     res.to_csv(f"{carpeta}/resumen.csv", index=False)
-    crudo = pd.DataFrame(crudos)
-    crudo.to_csv(f"{carpeta}/finales.csv", index=False)
-    figuras_combinaciones(res, crudo, plt, carpeta)
+    figuras_combinaciones(res, plt, carpeta)
 
 
-def rehacer_figuras_combinaciones(plt, carpeta="resultados/8_combinaciones"):
-    """Vuelve a dibujar desde los CSV (sin correr nada ni reescribirlos)."""
-    res = ordenar_combinaciones(pd.read_csv(f"{carpeta}/resumen.csv")
-                                .drop(columns="lugar", errors="ignore"))
-    figuras_combinaciones(res, pd.read_csv(f"{carpeta}/finales.csv"), plt,
-                          carpeta)
-
-
-def figuras_combinaciones(res, crudo, plt, carpeta):
+def figuras_combinaciones(res, plt, carpeta):
     nombres = list(FUNCIONES)
     claves = list(PARAMS_DEFAULT)
-    # 1) Cajas: las 5 mejores de cada funcion + la de por defecto
-    fig, axs = plt.subplots(1, len(nombres), figsize=(18, 5))
-    for ax, nom in zip(axs, nombres):
-        r = res[res.funcion == nom]
-        empatadas = int((r.lugar == 1).sum())
-        top = r.head(5)
-        dfl = r[r.apply(es_default, axis=1)]
-        sel = pd.concat([top, dfl]).drop_duplicates(subset=claves)
-        datos, etiquetas, colores = [], [], []
-        for _, f in sel.iterrows():
-            m = np.ones(len(crudo), bool)
-            for k in claves:
-                m &= np.isclose(crudo[k], f[k])
-            y = crudo.loc[m & (crudo.funcion == nom), "mejor_f"].to_numpy()
-            datos.append(y)
-            etiquetas.append(
-                f"#{int(f['lugar'])}\n{int(f['n_ballenas'])}x"
-                f"{int(f['max_iter'])}\na={f['a_inicial']:g}\nb={f['b']:g}"
-                f"\np={f['p_umbral']:g}")
-            colores.append("#9ecae1" if es_default(f) else "white")
-        pos = np.concatenate(datos)
-        pos = pos[pos > 0]
-        piso = 10.0 ** (np.floor(np.log10(pos.min())) - 1) if len(pos) else 1e-16
-        cajas = ax.boxplot([np.maximum(d, piso) for d in datos],
-                           patch_artist=True, showmeans=True, widths=0.6,
-                           meanprops=dict(marker="D", markersize=5,
-                                          markerfacecolor="#d62728",
-                                          markeredgecolor="white"),
-                           medianprops=dict(color="black", linewidth=1.5),
-                           flierprops=dict(marker="o", markersize=3, alpha=0.5))
-        for k, (caja, col) in enumerate(zip(cajas["boxes"], colores), 1):
-            caja.set_facecolor(col)
-            if col != "white":    # franja: se ve aunque la caja sea plana
-                ax.axvspan(k - 0.45, k + 0.45, color="#deebf7", zorder=0)
-        ax.set_xticks(range(1, len(etiquetas) + 1), etiquetas, fontsize=7.5)
-        ax.set_yscale("log")
-        if (np.concatenate(datos) <= 0).any():   # piso = "0" en el eje
-            alto = max(np.concatenate(datos).max(), piso * 100)
-            ks = np.arange(np.ceil(np.log10(piso)) + 1,
-                           np.floor(np.log10(alto)) + 1)
-            ks = ks[::max(1, int(np.ceil(len(ks) / 5)))]
-            ax.axhline(piso, color="gray", lw=0.8, ls=":")
-            ax.set_yticks([piso] + [10.0 ** k for k in ks],
-                          ["0"] + [f"$10^{{{int(k)}}}$" for k in ks])
-            ax.minorticks_off()
-            ax.set_ylim(piso / 3, alto * 3)
-        ax.grid(axis="y", alpha=0.3)
-        ax.set_title(nom + (f"\n({empatadas} empatadas en 1er lugar)"
-                            if empatadas > 1 else ""), fontweight="bold")
-    axs[0].set_ylabel("mejor valor final (log)")
-    fig.suptitle("Las 5 mejores combinaciones de cada función (azul = la de "
-                 "por defecto, con su lugar). Mismo esfuerzo: 6000 movimientos",
-                 fontsize=12)
-    fig.tight_layout()
-    fig.savefig(f"{carpeta}/mejores.png", dpi=130, bbox_inches="tight")
-    plt.close(fig)
-
-    # 2) Cruce: la ganadora de cada funcion, ¿en que lugar queda en las demas?
+    # Cruce: la ganadora de cada funcion, ¿en que lugar queda en las demas?
     lugares = np.zeros((len(nombres) + 1, len(nombres)), int)
     filas_txt = []
     ganadoras = [res[(res.funcion == nom) & (res.lugar == 1)].iloc[0]
@@ -498,19 +518,49 @@ def main():
     ap.add_argument("--solo-panorama", action="store_true",
                     help="solo la figura con todas las cajas (7_panorama)")
     ap.add_argument("--solo-combinaciones", action="store_true",
-                    help="solo el experimento de combinaciones (~15 min)")
+                    help="solo el experimento de combinaciones (~12 min)")
+    ap.add_argument("--solo-reporte", action="store_true",
+                    help="no correr nada: solo actualizar la guia del "
+                         "reporte con los CSV que ya existen")
     args = ap.parse_args()
     n_comb = 5 if args.rapido else N_COMBINACIONES
     n = 5 if args.rapido else 30
     if args.solo_sesgo:
         experimento_sesgo(n, plt)
-        return
-    if args.solo_panorama:
+        experimento_rosenbrock(n, plt)
+    elif args.solo_panorama:
         experimento_panorama(n, plt)
-        return
-    if args.solo_combinaciones:
+    elif args.solo_combinaciones:
         experimento_combinaciones(n_comb, plt)
-        return
+    elif not args.solo_reporte:
+        generar_todo(n, n_comb, plt)
+    if args.rapido:
+        print("\n(--rapido: con 5 corridas los numeros no son los del "
+              "reporte, asi que la guia NO se actualizo)")
+    else:
+        avisar_reporte()
+
+
+def avisar_reporte():
+    """Al terminar: reescribe las tablas automaticas de la guia del reporte
+    y avisa si algun numero escrito a mano ya no coincide."""
+    from interfaz.reporte import actualizar_reporte
+    cambiados, malos = actualizar_reporte()
+    print("\nGuia del reporte (docs/reporte_referencia.md):")
+    print("  tablas actualizadas: " + (", ".join(cambiados) if cambiados
+                                       else "ya estaban al día"))
+    if malos:
+        print(f"  OJO: {len(malos)} numeros escritos a mano ya no coinciden "
+              "con los CSV; corrijanlos en el texto (y en "
+              "interfaz/reporte.py, lista NUMEROS):")
+        for m in malos:
+            print("   - " + m)
+    else:
+        print("  todos los numeros escritos a mano siguen coincidiendo")
+
+
+def generar_todo(n, n_comb, plt):
+    """Corre todos los experimentos y escribe resultados/ (~20 min)."""
     # Estructura: resultados/0_base/ y una carpeta por funcion, numeradas en
     # el orden de Wikipedia (1_Rastrigin, 2_Ackley, ...).
     os.makedirs("resultados/0_base", exist_ok=True)
@@ -523,8 +573,9 @@ def main():
         filas.append({"funcion": nombre, **resumen(fin, tie)})
         plt.semilogy(np.mean(cur, axis=0) + 1e-300, label=nombre)
     pd.DataFrame(filas).to_csv("resultados/0_base/resumen.csv", index=False)
-    plt.xlabel("Iteracion"); plt.ylabel("Mejor fitness medio (log)")
-    plt.legend(); plt.title("Convergencia con parametros por defecto")
+    plt.xlabel("Vuelta"); plt.ylabel("Mejor valor (promedio, escala log)")
+    plt.legend()
+    plt.title("Cómo va mejorando cada función (valores por defecto)")
     plt.tight_layout(); plt.savefig("resultados/0_base/convergencia.png", dpi=150)
     plt.close()
     print("base listo")
@@ -541,19 +592,27 @@ def main():
             fig, ax = plt.subplots(1, 2, figsize=(11, 4))
             ax[0].boxplot([fin_d[v] for v in vals], tick_labels=[str(v) for v in vals])
             ax[0].set_yscale("symlog", linthresh=1e-12)
-            ax[0].set_xlabel(par); ax[0].set_ylabel("Mejor fitness final")
+            ax[0].set_xlabel(NOMBRES_PAR[par])
+            ax[0].set_ylabel("Mejor valor final")
+            ax[0].set_title("Resultado de cada corrida")
             for v in vals:
-                ax[1].semilogy(np.mean(cur_d[v], axis=0) + 1e-300, label=f"{par}={v}")
-            ax[1].set_xlabel("Iteracion"); ax[1].legend()
-            fig.suptitle(f"{nombre}: efecto de {par}")
+                ax[1].semilogy(np.mean(cur_d[v], axis=0) + 1e-300,
+                               label=f"{NOMBRES_PAR[par]} = {v}")
+            ax[1].set_xlabel("Vuelta")
+            ax[1].set_ylabel("Mejor valor (promedio)")
+            ax[1].set_title("Cómo fue mejorando")
+            ax[1].legend()
+            fig.suptitle(f"{nombre}: efecto de {NOMBRES_PAR[par].lower()}")
             fig.tight_layout()
             fig.savefig(f"{carpeta}/{par}.png", dpi=130)
             plt.close(fig)
         print(nombre, "listo")
     guardar_panorama(todos_finales, plt)
 
-    # 3) Sesgo al centro: misma funcion con el optimo movido de lugar
+    # 3) Sesgo al centro: misma funcion con el optimo movido de lugar, y
+    #    a donde llegan las corridas de Rosenbrock
     experimento_sesgo(n, plt)
+    experimento_rosenbrock(n, plt)
 
     # 4) Combinaciones de a, b y p con el mismo esfuerzo
     experimento_combinaciones(n_comb, plt)

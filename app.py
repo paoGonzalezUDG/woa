@@ -22,6 +22,24 @@ from experimentos import PARAMS_DEFAULT, barrido
 from interfaz import cajas, combinaciones, paso_a_paso, visual, visual3d
 
 st.set_page_config(page_title="WOA - Proyecto final", layout="wide")
+# Secciones (arriba) grandes; subsecciones (adentro) como botoncitos, para
+# que se note cual esta dentro de cual.
+st.markdown("""<style>
+div[data-testid="stTabs"] [data-testid="stTab"] p {
+    font-size: 1.12rem; font-weight: 600; }
+div[data-testid="stTabs"] div[data-testid="stTabs"] [data-testid="stTab"] {
+    border-radius: 999px; padding: 0.15rem 0.9rem; margin-right: 0.4rem;
+    background: rgba(128, 128, 128, 0.14); }
+div[data-testid="stTabs"] div[data-testid="stTabs"]
+        [data-testid="stTab"][aria-selected="true"],
+div[data-testid="stTabs"] div[data-testid="stTabs"]
+        [data-testid="stTab"][data-selected="true"] {
+    background: rgba(255, 75, 75, 0.2); }
+div[data-testid="stTabs"] div[data-testid="stTabs"] [data-testid="stTab"] p {
+    font-size: 0.92rem; font-weight: 500; }
+div[data-testid="stTabs"] div[data-testid="stTabs"]
+        .react-aria-SelectionIndicator { display: none; }
+</style>""", unsafe_allow_html=True)
 
 CARPETA_APP = os.path.dirname(os.path.abspath(__file__))
 CARPETA_RES = os.path.join(CARPETA_APP, "resultados")
@@ -95,11 +113,13 @@ def valores_por_defecto():
     st.session_state.update(VALORES_ARTICULO)
 
 
+st.sidebar.caption("Estos ajustes se usan en *Ver el algoritmo* y "
+                   "*Probar tú*.")
 st.sidebar.header("1. Elige la función")
 nombre = st.sidebar.selectbox(
     "Función", list(FUNCIONES),
     help="Es el “terreno” donde las ballenas buscan el punto más bajo. "
-         "Cada una tiene una trampa distinta (ver la pestaña Empieza aquí).")
+         "Cada una tiene una trampa distinta (ver la sección Inicio).")
 cfg = FUNCIONES[nombre]
 
 if cfg["dim"] is None:
@@ -170,11 +190,35 @@ st.title("El algoritmo de la ballena (WOA)")
 st.caption("Ballenas virtuales buscando el punto más bajo de 5 funciones "
            "matemáticas. Proyecto final.")
 
-(tab_inicio, tab1, tab_3d, tab_pp, tab2, tab3, tab4, tab_cajas, tab_comb,
- tab_res, tab_rep) = st.tabs([
-    "Empieza aquí", "Una corrida", "Simulación 3D", "Paso a paso",
-    "Comparar", "Muchas corridas", "Sesgo al centro", "Todas las cajas",
-    "Mejor combinación", "Resultados", "Reporte"])
+# 5 secciones; las que tienen varias partes llevan sus propias pestanas.
+SECCIONES = {
+    "Inicio": [],
+    "Ver el algoritmo": ["Una corrida", "Simulación 3D", "Paso a paso",
+                         "Comparar"],
+    "Probar tú": ["Muchas corridas", "Sesgo al centro"],
+    "Resultados": ["Todas las cajas", "Mejor combinación",
+                   "Tablas y descargas"],
+    "Reporte": [],
+}
+INTRO_SECCION = {
+    "Ver el algoritmo": "Mira cómo se mueven las ballenas y por qué. Usa los "
+                        "ajustes de la barra izquierda.",
+    "Probar tú": "Corre tus propios experimentos con muchas repeticiones "
+                 "(tardan unos segundos o minutos).",
+    "Resultados": "Los experimentos ya hechos para el reporte (30 corridas "
+                  "cada uno). No usan la barra izquierda: abren al instante.",
+}
+(sec_inicio, sec_ver, sec_probar, sec_res, sec_rep) = st.tabs(list(SECCIONES))
+with sec_ver:
+    st.caption(INTRO_SECCION["Ver el algoritmo"])
+    tab1, tab_3d, tab_pp, tab2 = st.tabs(SECCIONES["Ver el algoritmo"])
+with sec_probar:
+    st.caption(INTRO_SECCION["Probar tú"])
+    tab3, tab4 = st.tabs(SECCIONES["Probar tú"])
+with sec_res:
+    st.caption(INTRO_SECCION["Resultados"])
+    tab_cajas, tab_comb, tab_res = st.tabs(SECCIONES["Resultados"])
+tab_inicio, tab_rep = sec_inicio, sec_rep
 
 
 # --------------------------- Utilidades cacheadas ---------------------------
@@ -240,6 +284,27 @@ def es_pesado(*lista_params):
     return True
 
 
+SEG_POR_MOVIMIENTO = 1.4e-5      # medido: 30 x 200 con 10 variables ~ 0.08 s
+LIMITE_ESPERA_S = 60
+
+
+def confirmar_espera(movimientos, clave):
+    """Para las pestanas que corren muchas veces: si se calcula que tardara
+    mas de un minuto, avisa y pide confirmar. Devuelve True si se puede
+    correr."""
+    seg = movimientos * SEG_POR_MOVIMIENTO
+    if seg <= LIMITE_ESPERA_S:
+        return True
+    minutos = seg / 60
+    texto = (f"unos {minutos:.0f} minutos" if minutos < 120
+             else f"unas {minutos / 60:.1f} horas")
+    st.warning(f"Con estos ajustes son {movimientos:,} movimientos en total: "
+               f"tardaría **{texto}** (aprox.) y la app no responde mientras "
+               "tanto. Baja las repeticiones, las ballenas o las vueltas, o "
+               "confirma si de verdad quieres esperar.")
+    return st.checkbox(f"Sí, quiero esperar {texto}", key=f"espera_{clave}")
+
+
 AYUDA_TIEMPO = ("Cuánto tardó la computadora en hacer todas las vueltas del "
                 "algoritmo (sin contar lo que tarda en dibujar). Cambia un "
                 "poco cada vez y de una computadora a otra; sirve para "
@@ -268,21 +333,17 @@ un terreno lleno de cerros y hoyos: hay que encontrar el hoyo más profundo
 """)
     st.markdown("#### ¿Por dónde empiezo?")
     st.markdown("""
-| Si quieres... | Ve a la pestaña |
-|---|---|
-| Ver el algoritmo funcionando | **Una corrida** |
-| Ver a las ballenas moverse sobre el terreno en 3D | **Simulación 3D** |
-| Entender las fórmulas con números reales | **Paso a paso** |
-| Ver por qué un ajuste cambia el resultado | **Comparar** |
-| Sacar datos confiables (muchas repeticiones) | **Muchas corridas** |
-| Ver el hallazgo más interesante del proyecto | **Sesgo al centro** |
-| Comparar todos los ajustes en las 5 funciones de un vistazo | **Todas las cajas** |
-| Saber qué combinación de ajustes es mejor para cada función | **Mejor combinación** |
-| Ver y descargar las tablas y gráficas del reporte | **Resultados** |
-| Leer la guía para escribir el reporte | **Reporte** |
+La app tiene **5 secciones** (arriba). Ve en este orden:
 
-Los ajustes de la **barra izquierda** se usan en todas las pestañas. Pasa el
-mouse sobre el ⓘ de cada uno para ver qué hace.
+| Sección | Para qué | Adentro |
+|---|---|---|
+| **1. Ver el algoritmo** | Entender cómo se mueven las ballenas | Una corrida · Simulación 3D · Paso a paso · Comparar |
+| **2. Probar tú** | Correr tus propios experimentos | Muchas corridas · Sesgo al centro |
+| **3. Resultados** | Los experimentos ya hechos para el reporte | Todas las cajas · Mejor combinación · Tablas y descargas |
+| **4. Reporte** | La guía para escribir el reporte | |
+
+Los ajustes de la **barra izquierda** se usan en *Ver el algoritmo* y
+*Probar tú*. Pasa el mouse sobre el ⓘ de cada uno para ver qué hace.
 """)
 
     st.markdown("#### Palabras que vas a ver")
@@ -655,7 +716,7 @@ with tab2:
         mostrar(visual.figura_diversidad_convergencia(casos))
         st.caption("Ojo: esto es **una sola corrida**; sirve para ver la "
                    "idea. Para sacar conclusiones usa **Muchas corridas** o la "
-                   "pestaña **Resultados**.")
+                   "sección **Resultados**.")
 
 # ------------------------------ Muchas corridas -----------------------------
 with tab3:
@@ -677,7 +738,18 @@ with tab3:
         help="Cuántas corridas por cada valor. Usamos 30 en el reporte: "
              "suficientes para que la suerte se compense.")
 
-    if st.button("Correr", key="btn_exp", type="primary"):
+    try:
+        valores_previos = [float(v) for v in texto.split(",") if v.strip()]
+    except ValueError:
+        valores_previos = []
+    movs_exp = 0
+    for v in valores_previos:     # ballenas x vueltas de cada valor
+        q = {**params, par: v} if par != "dim" else params
+        escala = v / max(int(dim), 1) if par == "dim" else 1   # mas variables
+        movs_exp += q["n_ballenas"] * q["max_iter"] * escala * int(n_corridas)
+    puede_exp = confirmar_espera(int(movs_exp), "exp")
+    if st.button("Correr", key="btn_exp", type="primary",
+                 disabled=not puede_exp):
         try:
             valores = [float(v) for v in texto.split(",") if v.strip()]
         except ValueError:
@@ -769,12 +841,21 @@ a las ballenas hacia el centro.
 Si el mínimo está en el centro (Rastrigin, Ackley, Sphere), eso ayuda
 muchísimo. Si no (Rosenbrock, Beale), estorba. Esto explica por qué le fue
 "perfecto" justo en esas 3 funciones.
+
+**También explica Rosenbrock:** con 10 variables vale 9 en el centro, y las
+corridas que se "atoran en ~8.9" terminan justo ahí, pegadas al centro, en
+lugar de llegar a su mínimo (1, …, 1). La gráfica está en *Resultados ›
+Tablas y descargas › Sesgo al centro*.
 """)
 
     st.markdown(f"#### Ahora con muchas corridas ({int(dim)} variables)")
     c1, c2 = st.columns([1, 3])
     n_s = c1.number_input("Repeticiones", 2, 100, 20, key="n_s")
-    if st.button("Correr", key="btn_sesgo", type="primary"):
+    movs_s = 2 * int(n_s) * params["n_ballenas"] * params["max_iter"]
+    with c2:
+        puede_s = confirmar_espera(movs_s, "sesgo")
+    if st.button("Correr", key="btn_sesgo", type="primary",
+                 disabled=not puede_s):
         d = int(dim)
         filas, datos = [], {}
         with st.spinner("Corriendo..."):
@@ -1014,7 +1095,7 @@ mismo trabajo. Así la comparación es justa.
   empieza con las ballenas en el mismo lugar, así la comparación es pareja.
 """)
         st.caption("Las versiones en imagen para el reporte están en "
-                   "`resultados/8_combinaciones/` (mejores.png y cruce.png).")
+                   "`resultados/8_combinaciones/` (mapa.png y cruce.png).")
 
 with tab_res:
     st.write("Las tablas y gráficas que usamos en el reporte. Cada "
@@ -1075,6 +1156,8 @@ def mostrar_markdown(texto, carpeta_base):
     muestran con st.image."""
     bloque = []
     for linea in texto.splitlines():
+        if linea.startswith("<!-- "):       # marcas de tablas automaticas
+            continue
         m = IMAGEN_MD.match(linea)
         if m:
             if bloque:

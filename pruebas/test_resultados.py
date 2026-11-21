@@ -4,7 +4,6 @@ Los resultados guardados y el reporte:
   2) Revisar que los numeros escritos a mano en el reporte coincidan con los
      CSV (redondeados a las cifras que se escribieron).
 """
-import math
 import os
 import re
 import subprocess
@@ -15,6 +14,7 @@ import pandas as pd
 import pytest
 
 from conftest import RAIZ
+from interfaz import reporte
 
 RES = os.path.join(RAIZ, "resultados")
 REPORTE = os.path.join(RAIZ, "docs", "reporte_referencia.md")
@@ -67,22 +67,12 @@ def test_panorama_cuadra_con_los_csv():
 
 
 def test_combinaciones_cuadran():
-    """resumen.csv cuadra con finales.csv y sus lugares son reproducibles."""
+    """resumen.csv completo y sus lugares son reproducibles."""
     import sys
     sys.path.insert(0, RAIZ)
-    from experimentos import (PARAMS_DEFAULT, combinaciones,
-                              ordenar_combinaciones)
-    car = os.path.join(RES, "8_combinaciones")
-    res = pd.read_csv(os.path.join(car, "resumen.csv"))
-    cru = pd.read_csv(os.path.join(car, "finales.csv"))
-    claves = list(PARAMS_DEFAULT)
+    from experimentos import combinaciones, ordenar_combinaciones
+    res = pd.read_csv(os.path.join(RES, "8_combinaciones", "resumen.csv"))
     assert len(res) == 5 * len(combinaciones())
-    assert len(cru) == len(res) * 25
-    med = cru.groupby(["funcion"] + claves)["mejor_f"].median()
-    r = res.set_index(["funcion"] + claves)["mediana"]
-    assert np.allclose(med.loc[r.index].to_numpy(), r.to_numpy(),
-                       rtol=1e-9, atol=0)
-    # ordenar otra vez da los mismos lugares
     otra = ordenar_combinaciones(res.drop(columns="lugar"))
     assert list(otra["lugar"]) == list(res["lugar"])
     for nom in res.funcion.unique():
@@ -103,7 +93,8 @@ def test_estructura_de_resultados():
 
 def test_csv_tienen_sentido():
     for rel in _csvs(RES):
-        if rel.startswith("7_panorama") or rel.endswith("finales.csv"):
+        if (rel.startswith("7_panorama") or rel.endswith("finales.csv")
+                or rel.endswith("rosenbrock.csv")):
             continue                          # una fila por corrida, aparte
         df = pd.read_csv(os.path.join(RES, rel))
         assert (df["mejor"] <= df["mediana"]).all(), rel
@@ -129,168 +120,62 @@ def test_valor_por_defecto_repite_la_fila_base():
 
 
 # --------------------------------------------------------------------------
-# 2) Numeros escritos a mano en el reporte vs. CSV
+# 2) La guia del reporte vs. CSV (la lista de numeros vive en
+#    interfaz/reporte.py; experimentos.py la revisa al terminar)
 # --------------------------------------------------------------------------
-def _valor(carpeta, archivo, filtro_col, filtro_val, col):
-    df = pd.read_csv(os.path.join(RES, carpeta, archivo))
-    if isinstance(filtro_val, str):
-        fila = df[df[filtro_col] == filtro_val]
-    else:
-        fila = df[np.isclose(df[filtro_col], filtro_val)]
-    assert len(fila) == 1, (carpeta, archivo, filtro_val)
-    return float(fila.iloc[0][col])
-
-
-def _coincide(real, escrito):
-    """True si 'escrito' es 'real' redondeado a las cifras que tiene."""
-    v = float(escrito)
-    if v == 0:
-        return real == 0
-    mant = escrito.lower().split("e")[0].replace("-", "").replace(".", "")
-    k = len(mant.lstrip("0"))                      # cifras significativas
-    unidad = 10 ** (math.floor(math.log10(abs(v))) - k + 1)
-    return abs(real - v) <= 0.5 * unidad * 1.0001
-
-
-B, S = "0_base", "6_sesgo_centro"
-AFIRMACIONES = [
-    # (carpeta, archivo, columna_filtro, valor_filtro, columna, escrito)
-    (B, "resumen.csv", "funcion", "Rastrigin", "mediana", "0"),
-    (B, "resumen.csv", "funcion", "Rastrigin", "media", "1.9e-15"),
-    (B, "resumen.csv", "funcion", "Rastrigin", "peor", "2.8e-14"),
-    (B, "resumen.csv", "funcion", "Ackley", "mediana", "3.6e-15"),
-    (B, "resumen.csv", "funcion", "Ackley", "media", "3.9e-15"),
-    (B, "resumen.csv", "funcion", "Ackley", "peor", "1.4e-14"),
-    (B, "resumen.csv", "funcion", "Sphere", "mediana", "1.8e-34"),
-    (B, "resumen.csv", "funcion", "Sphere", "media", "9.9e-32"),
-    (B, "resumen.csv", "funcion", "Sphere", "peor", "2.7e-30"),
-    (B, "resumen.csv", "funcion", "Rosenbrock", "mediana", "8.56"),
-    (B, "resumen.csv", "funcion", "Rosenbrock", "media", "5.43"),
-    (B, "resumen.csv", "funcion", "Rosenbrock", "peor", "8.90"),
-    (B, "resumen.csv", "funcion", "Beale", "mediana", "8.8e-9"),
-    (B, "resumen.csv", "funcion", "Beale", "media", "0.10"),
-    (B, "resumen.csv", "funcion", "Beale", "peor", "0.76"),
-    # max_iter
-    ("3_Sphere", "max_iter.csv", "max_iter", 50, "mediana", "4.6e-6"),
-    ("3_Sphere", "max_iter.csv", "max_iter", 100, "mediana", "1.9e-16"),
-    ("3_Sphere", "max_iter.csv", "max_iter", 500, "mediana", "1.4e-89"),
-    ("1_Rastrigin", "max_iter.csv", "max_iter", 50, "peor", "59.7"),
-    ("1_Rastrigin", "max_iter.csv", "max_iter", 100, "peor", "49.8"),
-    ("1_Rastrigin", "max_iter.csv", "max_iter", 500, "peor", "0"),
-    ("4_Rosenbrock", "max_iter.csv", "max_iter", 50, "mediana", "8.90"),
-    ("4_Rosenbrock", "max_iter.csv", "max_iter", 100, "mediana", "8.72"),
-    ("4_Rosenbrock", "max_iter.csv", "max_iter", 500, "mediana", "0.40"),
-    # n_ballenas
-    ("4_Rosenbrock", "n_ballenas.csv", "n_ballenas", 10, "mediana", "8.90"),
-    ("4_Rosenbrock", "n_ballenas.csv", "n_ballenas", 50, "mediana", "0.91"),
-    ("4_Rosenbrock", "n_ballenas.csv", "n_ballenas", 100, "mediana", "0.12"),
-    ("3_Sphere", "n_ballenas.csv", "n_ballenas", 10, "mediana", "8.1e-24"),
-    ("3_Sphere", "n_ballenas.csv", "n_ballenas", 50, "mediana", "6.0e-39"),
-    ("3_Sphere", "n_ballenas.csv", "n_ballenas", 100, "mediana", "7.3e-45"),
-] + [("5_Beale", "n_ballenas.csv", "n_ballenas", n, "peor", "0.76")
-     for n in (10, 30, 50, 100)] + [
-    # a_inicial
-    ("4_Rosenbrock", "a_inicial.csv", "a_inicial", 1.0, "mediana", "8.92"),
-    ("4_Rosenbrock", "a_inicial.csv", "a_inicial", 3.0, "mediana", "0.09"),
-    ("3_Sphere", "a_inicial.csv", "a_inicial", 1.0, "mediana", "2.1e-36"),
-    ("3_Sphere", "a_inicial.csv", "a_inicial", 3.0, "mediana", "4.7e-26"),
-    ("1_Rastrigin", "a_inicial.csv", "a_inicial", 1.0, "peor", "25.4"),
-    # p_umbral
-    ("4_Rosenbrock", "p_umbral.csv", "p_umbral", 0.2, "mediana", "8.43"),
-    ("4_Rosenbrock", "p_umbral.csv", "p_umbral", 0.8, "mediana", "0.26"),
-    ("1_Rastrigin", "p_umbral.csv", "p_umbral", 0.2, "peor", "33.1"),
-    # b
-    ("4_Rosenbrock", "b.csv", "b", 2.0, "mediana", "0.66"),
-]
-SESGO = [("Sphere", "original", "1.8e-34"), ("Sphere", "desplazada", "2.34"),
-         ("Rastrigin", "original", "0"), ("Rastrigin", "desplazada", "9.84"),
-         ("Ackley", "original", "3.6e-15"), ("Ackley", "desplazada", "0.028")]
-
-
-@pytest.mark.parametrize("carpeta, archivo, fcol, fval, col, escrito",
-                         AFIRMACIONES)
-def test_numero_del_reporte_coincide_con_csv(carpeta, archivo, fcol, fval,
-                                             col, escrito):
-    real = _valor(carpeta, archivo, fcol, fval, col)
-    assert _coincide(real, escrito), f"reporte dice {escrito}, CSV da {real:.4g}"
-
-
-@pytest.mark.parametrize("funcion, caso, escrito", SESGO)
-def test_numero_de_sesgo_del_reporte(funcion, caso, escrito):
-    df = pd.read_csv(os.path.join(RES, S, "resumen.csv"))
-    real = float(df[(df.funcion == funcion) & (df.caso == caso)].iloc[0].mediana)
-    assert _coincide(real, escrito), f"reporte dice {escrito}, CSV da {real:.4g}"
+@pytest.mark.parametrize("archivo, filtros, col, escrito", reporte.NUMEROS)
+def test_numero_del_reporte_coincide_con_csv(archivo, filtros, col, escrito):
+    real = reporte.valor(archivo, filtros, col)
+    assert reporte.coincide(real, escrito),         f"reporte dice {escrito}, CSV da {real:.4g}"
 
 
 def test_numeros_escritos_aparecen_en_el_reporte():
-    # Para que la lista de arriba no se desactualice si se edita el reporte
+    # Para que la lista no se desactualice si se edita el reporte
     texto = open(REPORTE, encoding="utf-8").read()
-    for a in AFIRMACIONES:
-        if a[-1] != "0":
-            assert a[-1] in texto, f"{a[-1]} ya no aparece en el reporte"
-
-
-# Seccion 4.6 del reporte (combinaciones). (funcion, reparto, a, b, p,
-# columna, escrito); reparto = n_ballenas
-D = (30, 2.0, 1.0, 0.5)
-COMBOS = [
-    ("Ackley", 10, 2.0, 1.0, 0.8, "mediana", "0"),
-    ("Ackley", *D, "mediana", "3.6e-15"), ("Ackley", *D, "lugar", "56"),
-    ("Rastrigin", *D, "lugar", "21"),
-    ("Sphere", 10, 2.0, 1.0, 0.5, "mediana", "7.4e-80"),
-    ("Sphere", *D, "mediana", "2.0e-34"), ("Sphere", *D, "lugar", "33"),
-    ("Rosenbrock", 10, 3.0, 0.5, 0.8, "mediana", "0.020"),
-    ("Rosenbrock", *D, "mediana", "8.57"), ("Rosenbrock", *D, "lugar", "47"),
-    ("Beale", 60, 3.0, 2.0, 0.2, "mediana", "1.7e-15"),
-    ("Beale", *D, "mediana", "7.8e-9"), ("Beale", *D, "lugar", "38"),
-    ("Rastrigin", 60, 1.0, 0.5, 0.2, "mediana", "32.8"),
-    ("Rastrigin", 10, 1.0, 0.5, 0.2, "mediana", "15"),
-]
-
-
-@pytest.mark.parametrize("nom, nb, a, b, p, col, escrito", COMBOS)
-def test_numero_de_combinaciones_del_reporte(nom, nb, a, b, p, col, escrito):
-    df = pd.read_csv(os.path.join(RES, "8_combinaciones", "resumen.csv"))
-    fila = df[(df.funcion == nom) & (df.n_ballenas == nb) & (df.a_inicial == a)
-              & (df.b == b) & (df.p_umbral == p)]
-    assert len(fila) == 1
-    assert _coincide(float(fila.iloc[0][col]), escrito), (nom, col, escrito)
+    for *_, escrito in reporte.NUMEROS:
+        if escrito != "0":
+            assert escrito in texto, f"{escrito} ya no aparece en el reporte"
 
 
 def test_lugares_promedio_del_reporte():
-    """Los lugares promedio de la seccion 4.6 (figura mapa.png)."""
-    import sys
-    sys.path.insert(0, RAIZ)
-    from experimentos import lugar_promedio_por_valor
-    df = pd.read_csv(os.path.join(RES, "8_combinaciones", "resumen.csv"))
-    lp = {nom: {(g, v): round(x) for g, v, x in filas}
-          for nom, filas in lugar_promedio_por_valor(df).items()}
-    R, A, B_, P = "Ballenas × vueltas", "a inicial", "b (espiral)", "p (umbral)"
-    esperado = {("Rastrigin", R, 10): 18, ("Rastrigin", R, 60): 61,
-                ("Rastrigin", A, 1.0): 51, ("Rastrigin", P, 0.2): 53,
-                ("Sphere", R, 10): 14, ("Sphere", R, 60): 68,
-                ("Sphere", B_, 0.5): 42, ("Sphere", B_, 1.0): 41,
-                ("Sphere", B_, 2.0): 41,
-                ("Rosenbrock", A, 3.0): 21, ("Rosenbrock", A, 1.0): 63,
-                ("Beale", P, 0.2): 16, ("Beale", P, 0.8): 65}
-    for (nom, g, v), x in esperado.items():
-        assert lp[nom][(g, v)] == x, (nom, g, v)
+    lp = reporte.lugares_reales()
+    for nom, g, v, escrito in reporte.LUGARES:
+        assert lp[nom][(g, v)] == escrito, (nom, g, v)
+
+
+def test_revisar_no_encuentra_nada_desactualizado():
+    assert reporte.revisar() == []
+
+
+def test_anexo_a_esta_al_dia():
+    """Las tablas automaticas del reporte son exactamente las de los CSV."""
+    texto = open(REPORTE, encoding="utf-8").read()
+    nuevo, cambiados = reporte.actualizar_texto(texto)
+    assert texto.count("<!-- auto:") == 7
+    assert cambiados == [] and nuevo == texto
+
+
+def test_actualizar_detecta_cambios(tmp_path):
+    """Si un CSV cambia, se reescribe su tabla y se avisa del numero."""
+    import shutil
+    res = tmp_path / "resultados"
+    shutil.copytree(RES, res)
+    f = res / "0_base" / "resumen.csv"
+    df = pd.read_csv(f)
+    df.loc[df.funcion == "Rosenbrock", "mediana"] = 1.234
+    df.to_csv(f, index=False)
+    copia = tmp_path / "reporte.md"
+    shutil.copy(REPORTE, copia)
+    cambiados, malos = reporte.actualizar_reporte(str(copia), str(res))
+    assert cambiados == ["anexo_base"]
+    assert "| Rosenbrock | 5.43 | 1.23 |" in copia.read_text(encoding="utf-8")
+    assert any("8.56" in m and "1.23" in m for m in malos)
 
 
 def test_imagenes_del_reporte_existen():
     texto = open(REPORTE, encoding="utf-8").read()
     rutas = re.findall(r"!\[.*?\]\((.+?)\)", texto)
-    assert len(rutas) >= 11 + 25
+    assert len(rutas) >= 16
     for r in rutas:
         assert os.path.exists(os.path.normpath(
             os.path.join(os.path.dirname(REPORTE), r))), r
-
-
-def test_anexo_a_coincide_con_csv():
-    # Cada fila del Anexo A se genero de los CSV; revisamos la de Rosenbrock
-    texto = open(REPORTE, encoding="utf-8").read()
-    df = pd.read_csv(os.path.join(RES, "4_Rosenbrock", "a_inicial.csv"))
-    for _, fila in df.iterrows():
-        mediana = f"{fila.mediana:.3g}" if fila.mediana >= 0.01 else \
-            f"{fila.mediana:.2e}"
-        assert f"| `a` inicial | " in texto and mediana in texto

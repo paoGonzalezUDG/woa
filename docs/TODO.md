@@ -50,14 +50,20 @@
 - [x] Subir los cambios a GitHub (19 de noviembre de 2026).
 - [ ] **Diana:** después de `git pull`, correr
       `python -m pip install -r requirements.txt` (se agregó `plotly`).
-- [ ] (Opcional) Cambiar los textos de las gráficas de `experimentos.py`
-      ("Iteracion", "fitness") a los de la app ("Vuelta", "mejor valor") y
-      regenerar `resultados/` (~5 min). Los números no cambian.
-- [ ] (Opcional) *Muchas corridas* y la parte estadística de *Sesgo al
-      centro* no tienen límite: con muchas ballenas, vueltas o repeticiones
-      pueden tardar varios minutos después de presionar **Correr**.
-- [ ] (Opcional) Investigar por qué Rosenbrock se atora en ~8.9 (hoy es una
-      hipótesis).
+- [x] Textos de las gráficas de `experimentos.py` cambiados a los de la
+      app ("Vuelta", "mejor valor") y `resultados/` regenerado: los números
+      salieron idénticos (21 de noviembre de 2026).
+- [x] *Muchas corridas* y *Sesgo al centro* calculan cuánto van a tardar
+      y, si pasa de un minuto, piden confirmar antes de correr.
+- [x] Por qué Rosenbrock se atora en ~8.9: las corridas atoradas terminan
+      pegadas al centro (0, …, 0), donde vale 9 (sesgo al centro). Con
+      `a = 3` ninguna se atora. Sección 4.4 de la guía y
+      `resultados/6_sesgo_centro/rosenbrock.png`.
+- [x] App reorganizada en 5 secciones con subsecciones (21 de noviembre de
+      2026).
+- [x] `python experimentos.py` actualiza también la guía del reporte: las
+      tablas del Anexo A se reescriben solas y avisa si algún número del
+      texto ya no coincide (`--solo-reporte` para hacer solo eso).
 
 ## Ya comprobado (no hace falta revisarlo otra vez)
 

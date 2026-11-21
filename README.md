@@ -91,7 +91,7 @@ raíz a propósito: GitHub, `pip` y las herramientas los buscan ahí.
 |---|---|---|
 | `algoritmo/woa.py` | Pone las ballenas al azar y en cada vuelta mueve a cada una con una de las 3 reglas (rodear, buscar o espiral). Regresa la mejor respuesta. | **Sí, bien** |
 | `algoritmo/funciones.py` | Las fórmulas de las 5 funciones, su dominio y dónde está su mínimo. | Sí |
-| `experimentos.py` | Repite el algoritmo 30 veces por configuración, saca promedios y genera la carpeta `resultados/`. | La idea general |
+| `experimentos.py` | Repite el algoritmo 30 veces por configuración, saca promedios, genera la carpeta `resultados/` y actualiza la guía del reporte. | La idea general |
 | `interfaz/paso_a_paso.py` | Hace exactamente lo mismo que `woa.py` (da los mismos resultados), pero guarda todos los números de cada ballena para mostrarlos en la app. | Ayuda a estudiar |
 | `app.py`, `interfaz/visual.py` y `interfaz/visual3d.py` | La interfaz, sus dibujos y la simulación 3D. | No |
 
@@ -100,11 +100,11 @@ raíz a propósito: GitHub, `pip` y las herramientas los buscan ahí.
 ## 3. Cómo usar la app
 
 Toda la app está escrita en lenguaje sencillo. Si es la primera vez, abre la
-pestaña **Empieza aquí**: explica las palabras básicas (vuelta, semilla,
+sección **Inicio**: explica las palabras básicas (vuelta, semilla,
 corrida...) con ejemplos.
 
 En la **barra de la izquierda** eliges la función y ajustas el algoritmo.
-Todas las pestañas usan esos valores. Cada ajuste tiene un ⓘ que explica qué
+Esos valores se usan en *Ver el algoritmo* y *Probar tú*. Cada ajuste tiene un ⓘ que explica qué
 hace, y el botón **Volver a los valores por defecto** lo regresa todo a como
 estaba.
 
@@ -112,19 +112,21 @@ Colores en todas las gráficas: **azul** = rodear, **naranja** = buscar,
 **verde** = espiral, gris = posición inicial, X amarilla = la mejor ballena
 (la presa), estrella roja = el mínimo real.
 
-| Pestaña | Qué ves | Úsala para... |
+La app tiene **5 secciones** arriba; algunas tienen subsecciones adentro.
+
+| Sección › subsección | Qué ves | Úsala para... |
 |---|---|---|
-| **Empieza aquí** | Qué es el proyecto, qué pestaña usar y un glosario con ejemplos. | Empezar. |
-| **Una corrida** | El algoritmo corrido una vez: el resultado, cómo fue mejorando y dónde están las ballenas. | Ver el algoritmo funcionando. |
-| **Simulación 3D** | Las ballenas moviéndose sobre el terreno de la función, en 3D. Tiene ▶ Reproducir, cámara desde arriba, inclinada o girando sola, el camino de la mejor ballena y terreno transparente. Se puede girar y acercar con el mouse aunque se esté reproduciendo. | Entender **cómo es cada función** y cómo la recorren las ballenas. |
-| **Paso a paso** | Una ballena en una vuelta, con todos los números y las cuentas. | **Entender las fórmulas.** |
-| **Comparar** | Dos valores de un ajuste lado a lado, con animación. | Entender **por qué** un ajuste cambia el resultado. |
-| **Muchas corridas** | Un ajuste probado muchas veces: tabla, gráficas y descarga en CSV. | Sacar datos confiables. |
-| **Sesgo al centro** | La misma función con el mínimo movido de lugar. | El hallazgo más interesante (ver el reporte de referencia). |
-| **Todas las cajas** | Todos los experimentos en una sola gráfica interactiva: filas = funciones, columnas = ajustes. Se puede ver una función más grande y cada corrida como puntito. | **Comparar todos los ajustes de un vistazo** (la figura resumen del reporte). |
-| **Mejor combinación** | 81 combinaciones de ajustes (a, b, p y cómo repartir ballenas/vueltas con el mismo esfuerzo), 25 corridas cada una: la mejor de cada función, qué ajuste importa más y si la ganadora de una función sirve para las demás. | **Decidir qué ajustes convienen en cada función.** |
-| **Resultados** | Las gráficas y tablas de la carpeta `resultados/`, con botones de descarga (también todo en un .zip). | Ver y descargar los resultados para el reporte. |
-| **Reporte** | El reporte de referencia completo, con sus gráficas. | Leer la guía del reporte sin salir de la app. |
+| **Inicio** | Qué es el proyecto, cómo está organizada la app y un glosario con ejemplos. | Empezar. |
+| **Ver el algoritmo** › Una corrida | El algoritmo corrido una vez: el resultado, cómo fue mejorando y dónde están las ballenas. | Ver el algoritmo funcionando. |
+| **Ver el algoritmo** › Simulación 3D | Las ballenas moviéndose sobre el terreno en 3D, con ▶ Reproducir, cámaras, camino de la mejor ballena y terreno transparente. Se puede girar con el mouse mientras se reproduce. | Entender **cómo es cada función** y cómo la recorren. |
+| **Ver el algoritmo** › Paso a paso | Una ballena en una vuelta, con todos los números y las cuentas. | **Entender las fórmulas.** |
+| **Ver el algoritmo** › Comparar | Dos valores de un ajuste lado a lado, con animación. | Entender **por qué** un ajuste cambia el resultado. |
+| **Probar tú** › Muchas corridas | Un ajuste probado muchas veces: tabla, gráficas y descarga en CSV. Avisa si va a tardar más de un minuto. | Sacar datos confiables. |
+| **Probar tú** › Sesgo al centro | La misma función con el mínimo movido de lugar. | El hallazgo más interesante. |
+| **Resultados** › Todas las cajas | Todos los experimentos en una gráfica interactiva (funciones × ajustes). | Comparar todos los ajustes de un vistazo. |
+| **Resultados** › Mejor combinación | 81 combinaciones de ajustes con el mismo esfuerzo: la mejor de cada función y qué ajuste importa más. | Decidir qué ajustes convienen en cada función. |
+| **Resultados** › Tablas y descargas | Las gráficas y tablas de `resultados/`, con descarga (también todo en un .zip). | Bajar los archivos para el reporte. |
+| **Reporte** | El reporte de referencia completo, con sus gráficas. | Leer la guía sin salir de la app. |
 
 ### Paso a paso (la mejor para estudiar)
 
@@ -149,7 +151,7 @@ o pausar en un momento para explicarlo. La comparación más clara: **Ackley
 con `a_inicial` 1 contra 3**.
 
 Ojo: las animaciones son de **una sola corrida**. Los datos para el reporte
-deben salir de la pestaña *Muchas corridas* o de la carpeta `resultados/`
+deben salir de *Probar tú › Muchas corridas* o de la carpeta `resultados/`
 (30 corridas).
 
 ---
@@ -172,7 +174,7 @@ resultados/
 └── 8_combinaciones/ Varios ajustes a la vez: la mejor combinación de cada función
 ```
 
-También se pueden ver en la app, pestaña **Resultados**.
+También se pueden ver en la app, sección **Resultados**.
 
 Ejemplo: `4_Rosenbrock/a_inicial.png` muestra qué pasa en Rosenbrock al
 probar `a` = 1, 2 y 3.
@@ -205,13 +207,28 @@ python -c "from interfaz.paso_a_paso import woa_detallado; from algoritmo.funcio
 ## 6. Regenerar los resultados
 
 ```
-python experimentos.py            # todo, 30 corridas (~3 min)
-python experimentos.py --rapido   # 5 corridas, solo para probar
-python experimentos.py --solo-sesgo   # solo el experimento de sesgo al centro
+python experimentos.py                      # todo (~20 min) y actualiza la guía
+python experimentos.py --solo-reporte       # solo actualiza la guía (al instante)
+python experimentos.py --solo-sesgo         # sesgo al centro y Rosenbrock
+python experimentos.py --solo-panorama      # la figura con todas las cajas
+python experimentos.py --solo-combinaciones # mejor combinación (~12 min)
+python experimentos.py --rapido             # 5 corridas, solo para probar
 ```
 
 Esto sobrescribe la carpeta `resultados/`. Como todo usa semillas fijas, con
 el mismo código salen exactamente los mismos números.
+
+**Al terminar, siempre actualiza la guía del reporte**
+(`docs/reporte_referencia.md`):
+
+- Las tablas del **Anexo A** se vuelven a escribir solas desde los CSV.
+- Los números escritos dentro del texto **no** se cambian solos (tienen
+  negritas y redacción), pero el comando avisa cuáles ya no coinciden, para
+  corregirlos a mano. La lista de esos números está en
+  `interfaz/reporte.py` (`NUMEROS`).
+
+Con `--rapido` la guía no se toca (con 5 corridas los números no son los
+del reporte).
 
 ---
 

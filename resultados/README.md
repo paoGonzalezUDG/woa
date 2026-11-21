@@ -15,7 +15,9 @@ resultados/
 ├── 5_Beale/
 ├── 6_sesgo_centro/    Misma función con el mínimo movido de lugar
 │   ├── resumen.csv        Rastrigin, Ackley y Sphere: original vs. movida
-│   └── comparacion.png    cajas: original vs. movida
+│   ├── comparacion.png    cajas: original vs. movida
+│   ├── rosenbrock.csv     Rosenbrock: ¿termina en el centro o en el mínimo?
+│   └── rosenbrock.png     (explica por qué se atora en ~8.9)
 └── 7_panorama/
     ├── finales.csv        el resultado de CADA corrida de los barridos
     │                      (la pestaña "Todas las cajas" de la app lo usa)
@@ -24,8 +26,6 @@ resultados/
 └── 8_combinaciones/   Varios ajustes a la vez (25 corridas cada combinación)
     ├── resumen.csv        81 combinaciones por función, con su lugar
     │                      (1 = la mejor; empates comparten lugar)
-    ├── finales.csv        el resultado de cada corrida
-    ├── mejores.png        las 5 mejores de cada función + la de por defecto
     ├── cruce.png          la ganadora de cada función, ¿qué lugar saca
     │                      en las demás?
     ├── mapa.png           qué valor de cada ajuste conviene en cada función

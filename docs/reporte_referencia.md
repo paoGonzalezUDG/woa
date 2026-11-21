@@ -332,7 +332,7 @@ se quedan planas.*
   todas las corridas.
 - **Rosenbrock: la más difícil.** La mayoría de las corridas se quedan en
   ~8.9, lejos de 0. En la gráfica su línea se queda plana desde la vuelta
-  ~40: las ballenas se estancan.
+  ~40: las ballenas se estancan (en la sección 4.4 vemos dónde y por qué).
 - **Beale: casi siempre bien, a veces mal.** La mediana es casi 0, pero la
   media es 0.10. Eso pasa porque unas pocas corridas se quedan atoradas en
   **0.76** (un mínimo local) y jalan el promedio. *Ejemplo perfecto de por
@@ -513,11 +513,39 @@ panel) y movido de lugar (derecha). Al moverlo, todas las corridas empeoran.*
 
 ### 4.4 ¿Por qué Rosenbrock se atora en ~8.9?
 
-Siendo honestas: **no lo sabemos con certeza**. Lo que sí sabemos es que el
-fondo del valle es casi plano, así que moverse un poco por el valle casi no
-mejora el valor, y las ballenas se quedan juntas sin avanzar. Más vueltas,
-más ballenas o `a = 3` lo arreglan en buena parte. Es válido decirlo como
-hipótesis en el reporte.
+**Por el sesgo al centro.** Con 10 variables, Rosenbrock vale exactamente
+**9 en el centro** (0, …, 0); su mínimo real (vale 0) está en (1, …, 1).
+Revisamos **dónde** termina cada corrida:
+
+| Ajustes (30 corridas) | Se atoran cerca del centro | Llegan al mínimo real | Mediana |
+|---|---|---|---|
+| Por defecto | **17** | 13 | 8.56 |
+| 500 vueltas | 6 | 23 | 0.40 |
+| `a = 3` | **0** | 29 | 0.092 |
+| Mejor combinación (10×600, a=3, b=0.5, p=0.8) | **0** | 30 | 0.023 |
+
+*"Cerca" = a menos de 0.5 de distancia. Fuente:
+`resultados/6_sesgo_centro/rosenbrock.csv`*
+
+![Figura 12](../resultados/6_sesgo_centro/rosenbrock.png)
+
+*Figura 12. Izquierda: cada punto es una corrida con los valores por
+defecto; quedan en dos grupos, pegadas al centro o en el mínimo real.
+Derecha: cuántas corridas se atoran en el centro con distintos ajustes.*
+
+- **Qué vimos:** las corridas atoradas no se quedan "en cualquier parte del
+  valle": **todas** terminan pegadas al centro, con valores de 8.2 a 8.9 (un
+  poco menos de 9 porque no quedan justo en el 0). Por eso el "~8.9".
+- **Por qué:** es el mismo jalón hacia el centro de la sección 4.3 (`C·X*`).
+  En Rosenbrock el centro no es el mínimo, pero sí es un lugar
+  relativamente bajo, así que las ballenas se quedan ahí y se encogen
+  alrededor de él antes de encontrar el valle que lleva a (1, …, 1).
+- **Por qué `a = 3` lo arregla:** explorar más tiempo les da oportunidad de
+  salir del centro antes de empezar a afinar. Con más vueltas mejora pero
+  no se arregla del todo (siguen 6 de 30 atoradas).
+- **Para el reporte:** esto convierte la hipótesis en una explicación con
+  datos, y conecta dos resultados (el sesgo al centro y Rosenbrock) en
+  una sola idea.
 
 ### 4.5 ¿Nuestros números se parecen a los del artículo?
 
@@ -560,16 +588,16 @@ al 81 por su mediana. Datos: `resultados/8_combinaciones/`.
 
 #### Paso 1: cómo es cada terreno
 
-![Figura 12](../resultados/8_combinaciones/terrenos.png)
+![Figura 13](../resultados/8_combinaciones/terrenos.png)
 
-*Figura 12. Las 5 funciones con 2 variables. La forma del terreno explica
+*Figura 13. Las 5 funciones con 2 variables. La forma del terreno explica
 casi todo lo que viene después.*
 
 #### Paso 2: qué valor de cada ajuste conviene en cada función
 
-![Figura 13](../resultados/8_combinaciones/mapa.png)
+![Figura 14](../resultados/8_combinaciones/mapa.png)
 
-*Figura 13. Cada casilla es el lugar promedio de las combinaciones que usan
+*Figura 14. Cada casilla es el lugar promedio de las combinaciones que usan
 ese valor (menor = mejor). El recuadro marca el mejor valor de cada ajuste
 en cada función.*
 
@@ -622,8 +650,8 @@ p=0.5.)*
   atoradas arriba de 1; la mejor, ninguna. Lo que más importa es `a`:
   `a = 3` queda en 21 y `a = 1` en 63. También ayuda `p = 0.8`.
   - *Pista:* `a = 3` y `p = 0.8` dan **más exploración** (más búsquedas al
-    azar y por más tiempo). Eso ayuda a no quedarse atoradas en la parte
-    plana del valle, el "~8.9" de la sección 4.4. *(Hipótesis.)*
+    azar y por más tiempo). Eso les permite salir del centro, donde se
+    atoran en "~8.9" (sección 4.4, ya comprobado con datos).
 - **Beale (valles angostos).** Lo que más importa es el umbral de `p`, al
   revés que en Rosenbrock: `p = 0.2` (mucha espiral) queda en 16 y
   `p = 0.8` en 65. La mediana baja de 7.8e-9 a 1.7e-15.
@@ -639,9 +667,9 @@ p=0.5.)*
 
 #### Paso 3: ¿hay una combinación que sirva para todas?
 
-![Figura 14](../resultados/8_combinaciones/cruce.png)
+![Figura 15](../resultados/8_combinaciones/cruce.png)
 
-*Figura 14. Cada fila es la combinación ganadora de una función; los
+*Figura 15. Cada fila es la combinación ganadora de una función; los
 números son el lugar que saca en cada función (de 81).*
 
 - **Qué vimos:** **no**. La mejor de Beale queda en el lugar **73** en
@@ -656,11 +684,6 @@ números son el lugar que saca en cada función (de 81).*
 - **Dato para la conclusión:** la de por defecto (la del artículo) nunca
   queda entre las 20 mejores, pero tampoco es mala en ninguna: es un
   **término medio** razonable cuando no se sabe cómo es el terreno.
-
-![Figura 15](../resultados/8_combinaciones/mejores.png)
-
-*Figura 15 (opcional o para el anexo). Las 5 mejores combinaciones de cada
-función contra la de por defecto (azul).*
 
 ---
 
@@ -698,7 +721,7 @@ Ideas para escribir con sus palabras:
 - Usamos 200 vueltas en lugar de las 500 del artículo.
 - Las combinaciones (sección 4.6) usaron 25 corridas en lugar de 30 y solo
   un esfuerzo total (6,000 movimientos).
-- Lo de Rosenbrock es una hipótesis sin comprobar.
+- Lo de Rosenbrock lo comprobamos solo con 10 variables.
 - Nuestros números no son directamente comparables con los del artículo
   (sección 4.5).
 
@@ -737,6 +760,7 @@ por defecto de cada parámetro.
 
 Fuente: `resultados/0_base/resumen.csv`
 
+<!-- auto:anexo_base -->
 | Función | Media | Mediana | Desv. est. | Mejor | Peor | Seg/corrida |
 |---|---|---|---|---|---|---|
 | Rastrigin | 1.89e-15 | 0 | 7.21e-15 | 0 | 2.84e-14 | 0.076 |
@@ -744,11 +768,13 @@ Fuente: `resultados/0_base/resumen.csv`
 | Sphere | 9.88e-32 | 1.84e-34 | 4.96e-31 | 6.14e-40 | 2.72e-30 | 0.070 |
 | Rosenbrock | 5.43 | 8.56 | 3.93 | 0.117 | 8.9 | 0.083 |
 | Beale | 0.102 | 8.78e-09 | 0.263 | 1.68e-11 | 0.762 | 0.047 |
+<!-- /auto -->
 
 ### A.2 Rastrigin
 
 Fuente: `resultados/1_Rastrigin/`
 
+<!-- auto:anexo_rastrigin -->
 | Parámetro | Valor | Media | Mediana | Desv. est. | Mejor | Peor |
 |---|---|---|---|---|---|---|
 | Número de ballenas | 10 | 9.47e-15 | 0 | 1.88e-14 | 0 | 8.53e-14 |
@@ -768,11 +794,13 @@ Fuente: `resultados/1_Rastrigin/`
 | Umbral de `p` | 0.2 | 1.1 | 0 | 6.03 | 0 | 33.1 |
 | Umbral de `p` | **0.5** | 1.89e-15 | 0 | 7.21e-15 | 0 | 2.84e-14 |
 | Umbral de `p` | 0.8 | 1.89e-15 | 0 | 7.21e-15 | 0 | 2.84e-14 |
+<!-- /auto -->
 
 ### A.3 Ackley
 
 Fuente: `resultados/2_Ackley/`
 
+<!-- auto:anexo_ackley -->
 | Parámetro | Valor | Media | Mediana | Desv. est. | Mejor | Peor |
 |---|---|---|---|---|---|---|
 | Número de ballenas | 10 | 8.14e-14 | 2.13e-14 | 2.65e-13 | 3.55e-15 | 1.47e-12 |
@@ -792,11 +820,13 @@ Fuente: `resultados/2_Ackley/`
 | Umbral de `p` | 0.2 | 2.49e-15 | 3.55e-15 | 2.66e-15 | 0 | 7.11e-15 |
 | Umbral de `p` | **0.5** | 3.91e-15 | 3.55e-15 | 2.85e-15 | 0 | 1.42e-14 |
 | Umbral de `p` | 0.8 | 2.84e-15 | 3.55e-15 | 2.54e-15 | 0 | 7.11e-15 |
+<!-- /auto -->
 
 ### A.4 Sphere
 
 Fuente: `resultados/3_Sphere/`
 
+<!-- auto:anexo_sphere -->
 | Parámetro | Valor | Media | Mediana | Desv. est. | Mejor | Peor |
 |---|---|---|---|---|---|---|
 | Número de ballenas | 10 | 6.58e-21 | 8.07e-24 | 2.71e-20 | 2.16e-31 | 1.47e-19 |
@@ -816,11 +846,13 @@ Fuente: `resultados/3_Sphere/`
 | Umbral de `p` | 0.2 | 5.36e-26 | 7.70e-29 | 2.53e-25 | 7.31e-33 | 1.38e-24 |
 | Umbral de `p` | **0.5** | 9.88e-32 | 1.84e-34 | 4.96e-31 | 6.14e-40 | 2.72e-30 |
 | Umbral de `p` | 0.8 | 9.25e-32 | 9.74e-34 | 3.86e-31 | 2.44e-38 | 2.12e-30 |
+<!-- /auto -->
 
 ### A.5 Rosenbrock
 
 Fuente: `resultados/4_Rosenbrock/`
 
+<!-- auto:anexo_rosenbrock -->
 | Parámetro | Valor | Media | Mediana | Desv. est. | Mejor | Peor |
 |---|---|---|---|---|---|---|
 | Número de ballenas | 10 | 8.45 | 8.9 | 1.65 | 1.01 | 8.95 |
@@ -840,11 +872,13 @@ Fuente: `resultados/4_Rosenbrock/`
 | Umbral de `p` | 0.2 | 8.34 | 8.43 | 0.447 | 7.24 | 8.92 |
 | Umbral de `p` | **0.5** | 5.43 | 8.56 | 3.93 | 0.117 | 8.9 |
 | Umbral de `p` | 0.8 | 1 | 0.259 | 2.15 | 5.72e-04 | 8.9 |
+<!-- /auto -->
 
 ### A.6 Beale
 
 Fuente: `resultados/5_Beale/`
 
+<!-- auto:anexo_beale -->
 | Parámetro | Valor | Media | Mediana | Desv. est. | Mejor | Peor |
 |---|---|---|---|---|---|---|
 | Número de ballenas | 10 | 0.178 | 1.50e-07 | 0.328 | 1.24e-10 | 0.762 |
@@ -864,11 +898,13 @@ Fuente: `resultados/5_Beale/`
 | Umbral de `p` | 0.2 | 0.152 | 7.42e-13 | 0.31 | 6.88e-17 | 0.762 |
 | Umbral de `p` | **0.5** | 0.102 | 8.78e-09 | 0.263 | 1.68e-11 | 0.762 |
 | Umbral de `p` | 0.8 | 0.152 | 3.64e-07 | 0.31 | 1.40e-10 | 0.762 |
+<!-- /auto -->
 
 ### A.7 Sesgo al centro
 
 Fuente: `resultados/6_sesgo_centro/resumen.csv`
 
+<!-- auto:anexo_sesgo -->
 | Función | Variables | Mínimo en | Media | Mediana | Desv. est. | Mejor | Peor |
 |---|---|---|---|---|---|---|---|
 | Rastrigin | 10 | 0 | 1.89e-15 | 0 | 7.21e-15 | 0 | 2.84e-14 |
@@ -877,123 +913,19 @@ Fuente: `resultados/6_sesgo_centro/resumen.csv`
 | Ackley | 2 | 1.5 | 0.0358 | 0.0279 | 0.0329 | 1.16e-03 | 0.124 |
 | Sphere | 10 | 0 | 9.88e-32 | 1.84e-34 | 4.96e-31 | 6.14e-40 | 2.72e-30 |
 | Sphere | 10 | 30 | 4.88 | 2.34 | 7.7 | 0.0587 | 40.6 |
+<!-- /auto -->
 
 ---
 
-## Anexo B. Todas las gráficas
+## Anexo B. Todas las gráficas en una
 
-Izquierda: cajas con el resultado final de las 30 corridas (más abajo es
-mejor). Derecha: cómo fue bajando el resultado, en promedio.
+Las 25 gráficas de caja (5 funciones × 5 parámetros) juntas. Cada caja son
+30 corridas; más abajo es mejor. La franja azul marca el valor por defecto.
+Las gráficas sueltas (con la curva de cómo fue bajando) están en
+`resultados/<n>_<Función>/` y en la app, *Resultados › Tablas y
+descargas*.
 
-### B.1 Rastrigin
-
-![Rastrigin: n_ballenas](../resultados/1_Rastrigin/n_ballenas.png)
-
-*Rastrigin: efecto de Número de ballenas.*
-
-![Rastrigin: max_iter](../resultados/1_Rastrigin/max_iter.png)
-
-*Rastrigin: efecto de Vueltas (iteraciones).*
-
-![Rastrigin: a_inicial](../resultados/1_Rastrigin/a_inicial.png)
-
-*Rastrigin: efecto de `a` inicial.*
-
-![Rastrigin: b](../resultados/1_Rastrigin/b.png)
-
-*Rastrigin: efecto de `b` (espiral).*
-
-![Rastrigin: p_umbral](../resultados/1_Rastrigin/p_umbral.png)
-
-*Rastrigin: efecto de Umbral de `p`.*
-
-### B.2 Ackley
-
-![Ackley: n_ballenas](../resultados/2_Ackley/n_ballenas.png)
-
-*Ackley: efecto de Número de ballenas.*
-
-![Ackley: max_iter](../resultados/2_Ackley/max_iter.png)
-
-*Ackley: efecto de Vueltas (iteraciones).*
-
-![Ackley: a_inicial](../resultados/2_Ackley/a_inicial.png)
-
-*Ackley: efecto de `a` inicial.*
-
-![Ackley: b](../resultados/2_Ackley/b.png)
-
-*Ackley: efecto de `b` (espiral).*
-
-![Ackley: p_umbral](../resultados/2_Ackley/p_umbral.png)
-
-*Ackley: efecto de Umbral de `p`.*
-
-### B.3 Sphere
-
-![Sphere: n_ballenas](../resultados/3_Sphere/n_ballenas.png)
-
-*Sphere: efecto de Número de ballenas.*
-
-![Sphere: max_iter](../resultados/3_Sphere/max_iter.png)
-
-*Sphere: efecto de Vueltas (iteraciones).*
-
-![Sphere: a_inicial](../resultados/3_Sphere/a_inicial.png)
-
-*Sphere: efecto de `a` inicial.*
-
-![Sphere: b](../resultados/3_Sphere/b.png)
-
-*Sphere: efecto de `b` (espiral).*
-
-![Sphere: p_umbral](../resultados/3_Sphere/p_umbral.png)
-
-*Sphere: efecto de Umbral de `p`.*
-
-### B.4 Rosenbrock
-
-![Rosenbrock: n_ballenas](../resultados/4_Rosenbrock/n_ballenas.png)
-
-*Rosenbrock: efecto de Número de ballenas.*
-
-![Rosenbrock: max_iter](../resultados/4_Rosenbrock/max_iter.png)
-
-*Rosenbrock: efecto de Vueltas (iteraciones).*
-
-![Rosenbrock: a_inicial](../resultados/4_Rosenbrock/a_inicial.png)
-
-*Rosenbrock: efecto de `a` inicial.*
-
-![Rosenbrock: b](../resultados/4_Rosenbrock/b.png)
-
-*Rosenbrock: efecto de `b` (espiral).*
-
-![Rosenbrock: p_umbral](../resultados/4_Rosenbrock/p_umbral.png)
-
-*Rosenbrock: efecto de Umbral de `p`.*
-
-### B.5 Beale
-
-![Beale: n_ballenas](../resultados/5_Beale/n_ballenas.png)
-
-*Beale: efecto de Número de ballenas.*
-
-![Beale: max_iter](../resultados/5_Beale/max_iter.png)
-
-*Beale: efecto de Vueltas (iteraciones).*
-
-![Beale: a_inicial](../resultados/5_Beale/a_inicial.png)
-
-*Beale: efecto de `a` inicial.*
-
-![Beale: b](../resultados/5_Beale/b.png)
-
-*Beale: efecto de `b` (espiral).*
-
-![Beale: p_umbral](../resultados/5_Beale/p_umbral.png)
-
-*Beale: efecto de Umbral de `p`.*
+![Anexo B](../resultados/7_panorama/cajas.png)
 
 ---
 

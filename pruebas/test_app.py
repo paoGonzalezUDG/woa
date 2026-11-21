@@ -86,9 +86,10 @@ def test_carga_inicial():
     _sin_errores(at)
     assert not at.warning, _textos(at.warning)
     assert [t.label for t in at.tabs] == [
-        "Empieza aquí", "Una corrida", "Simulación 3D", "Paso a paso",
-        "Comparar", "Muchas corridas", "Sesgo al centro", "Todas las cajas",
-        "Mejor combinación", "Resultados", "Reporte"]
+        "Inicio", "Ver el algoritmo", "Una corrida", "Simulación 3D",
+        "Paso a paso", "Comparar", "Probar tú", "Muchas corridas",
+        "Sesgo al centro", "Resultados", "Todas las cajas",
+        "Mejor combinación", "Tablas y descargas", "Reporte"]
 
 
 @pytest.mark.parametrize("nombre", FUNC)
@@ -278,6 +279,22 @@ def test_muchas_corridas_valores_invalidos(app):
     at = _muchas_corridas(at, "b", "uno, dos")
     _sin_errores(at)
     assert any("Revisa los valores" in t for t in _textos(at.error))
+
+
+def test_muchas_corridas_pide_confirmar_si_tarda(app):
+    at = elegir_funcion(app, "Rastrigin")
+    sel = [s for s in at.selectbox if s.label == "¿Qué ajuste quieres cambiar?"][0]
+    sel.set_value("n_ballenas").run()
+    at.text_input(key="vals_n_ballenas").set_value("500, 1000")
+    [n for n in at.number_input if n.label == "Repeticiones por valor"][0] \
+        .set_value(200)
+    at.run()
+    _sin_errores(at)
+    assert any("tardaría" in t for t in _textos(at.warning))
+    assert boton(at, "Correr", key="btn_exp").disabled
+    at.checkbox(key="espera_exp").check().run()
+    assert not boton(at, "Correr", key="btn_exp").disabled
+    at.checkbox(key="espera_exp").uncheck().run()     # no correrlo de verdad
 
 
 def test_sesgo_al_centro_estadistica(app):
