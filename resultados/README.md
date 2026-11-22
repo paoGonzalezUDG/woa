@@ -1,6 +1,7 @@
 # Resultados de los experimentos
 
-Cada configuración se corrió **30 veces**. Todo se genera con
+Cada configuración se corrió **30 veces**, salvo `9_tabla_25/` (la Tabla 1 del
+reporte: 1 corrida por fila). Todo se genera con
 `python experimentos.py`.
 
 ```
@@ -33,6 +34,11 @@ resultados/
     ├── mapa.png           qué valor de cada ajuste conviene en cada función
     │                      (lugar promedio)
     └── terrenos.png       las 5 funciones en 3D (con 2 variables)
+└── 9_tabla_25/        Tabla 1 del reporte: 25 ejecuciones por función,
+    │                  UNA corrida cada una con la semilla de la tabla
+    ├── corridas.csv       125 filas (función, ejecución, ajustes, variables,
+    │                      semilla, mejor valor, distancia al óptimo)
+    └── resultados.png     mapa de color: función × ejecución
 
 Las 81 combinaciones: a (1, 2, 3) × b (0.5, 1, 2) × p (0.2, 0.5, 0.8) × 3
 maneras de repartir el MISMO esfuerzo (ballenas × vueltas = 6000):

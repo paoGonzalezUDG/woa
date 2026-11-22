@@ -1063,6 +1063,8 @@ def etiqueta_carpeta(nombre_carpeta):
         return "Todas las cajas en una figura (funciones × ajustes)"
     if nombre_carpeta == "8_combinaciones":
         return "Mejor combinación de ajustes por función"
+    if nombre_carpeta == "9_tabla_25":
+        return "Tabla 1 del reporte: 25 ejecuciones por función"
     num, _, resto = nombre_carpeta.partition("_")
     return f"{num}. {resto}"
 
@@ -1164,13 +1166,19 @@ def combos_finales(firma):
 
 
 def resaltar_cambio(df, cambia):
-    """Pinta (azul claro, negritas) la celda del ajuste que cambia."""
+    """Pinta (azul claro, negritas) las celdas de los ajustes que cambian
+    (cambia = un conjunto de columnas por fila)."""
     estilo = pd.DataFrame("", index=df.index, columns=df.columns)
-    for i, col in enumerate(cambia):
-        if col:
+    for i, cols in enumerate(cambia):
+        for col in cols:
             estilo.iloc[i, df.columns.get_loc(col)] = (
                 "background-color: #d9ebf7; color: #12385c; font-weight: 700")
     return df.style.apply(lambda _: estilo, axis=None)
+
+
+@st.cache_data(show_spinner=False)
+def datos_tabla_25(firma):
+    return pd.read_csv(diseno.CSV_TABLA_25)
 
 
 with tab_diseno:
@@ -1183,7 +1191,7 @@ with tab_diseno:
             st.download_button(
                 "📄 Descargar en PDF", fh.read(),
                 file_name="diseno_experimental.pdf", mime="application/pdf",
-                help="Las mismas 4 tablas y las notas, listas para pegar "
+                help="Las mismas tablas y las notas, listas para pegar "
                      "en la sección 3 del reporte. Se vuelve a generar con "
                      "`python -m interfaz.diseno`.")
     st.subheader("1. Valores por defecto (configuración base)")
@@ -1192,18 +1200,44 @@ with tab_diseno:
     st.dataframe(diseno.tabla_funciones(), hide_index=True)
     st.caption("\\* Sphere y Rosenbrock no tienen límite en Wikipedia: la "
                "zona de búsqueda la elegimos nosotras.")
-    st.subheader("3. Un ajuste a la vez (igual en las 5 funciones)")
-    st.caption("En azul, el valor que cambia respecto a la base. "
-               "Variables 10 / 2 = las funciones de n variables / Ackley y "
-               "Beale.")
+    st.subheader("3. Diseño experimental de 25 ejecuciones por función")
+    st.caption("La Tabla 1 del reporte. **Una corrida por fila**, con la "
+               "semilla indicada (125 en total). En azul, lo que cambia "
+               "respecto a la base. Variables 10 / 2 = las funciones de n "
+               "variables / Ackley y Beale.")
+    df_25, cambia_25 = diseno.filas_tabla_25()
+    st.dataframe(resaltar_cambio(df_25, cambia_25), hide_index=True,
+                 height=35 * (len(df_25) + 1) + 3)
+    st.caption(diseno.nota_fila_25())
+    st.subheader("4. Resultado de cada ejecución")
+    if not os.path.exists(diseno.CSV_TABLA_25):
+        st.warning("Falta `resultados/9_tabla_25/corridas.csv`. Se crea con "
+                   "`python experimentos.py --solo-tabla-25` (menos de 1 "
+                   "min).")
+    else:
+        df_25r = datos_tabla_25(os.path.getmtime(diseno.CSV_TABLA_25))
+        st.write("El mejor valor que encontró cada ejecución (más bajo = "
+                 "mejor; el mínimo real de todas es 0).")
+        res_25 = diseno.tabla_25_resultados(df_25r)
+        st.dataframe(res_25.style.format(
+            {c: num_corto for c in FUNCIONES}), hide_index=True,
+            height=35 * (len(res_25) + 1) + 3)
+        st.image(os.path.join(CARPETA_RES, "9_tabla_25", "resultados.png"),
+                 width="stretch")
+        st.caption("Ojo: con **una sola corrida** por fila pesa mucho el "
+                   "azar. Para comparar ajustes, mejor las medianas de 30 "
+                   "corridas (Tabla 5 y *Todas las cajas*).")
+    st.subheader("5. Barridos con 30 corridas por valor")
+    st.caption("Los que usan las gráficas de caja y las medianas del "
+               "reporte. En azul, el valor que cambia respecto a la base.")
     df_barr, cambia_barr = diseno.filas_barridos()
     st.dataframe(resaltar_cambio(df_barr, cambia_barr), hide_index=True)
-    st.subheader("4. Experimentos adicionales")
+    st.subheader("6. Experimentos adicionales")
     st.dataframe(diseno.tabla_adicionales(), hide_index=True)
     with st.expander("Notas (totales y aclaraciones)", expanded=True):
         st.markdown("\n".join(f"- {n}" for n in diseno.notas()))
 
-    st.subheader("5. ¿Qué pasa en cada función?")
+    st.subheader("7. ¿Qué pasa en cada función?")
     st.write("Lo que salió de esas corridas, para no tener que probar "
              "ajustes uno por uno. Todos los números vienen de "
              "`resultados/` (30 corridas por valor).")

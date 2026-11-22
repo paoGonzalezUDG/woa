@@ -40,7 +40,7 @@ def test_regenerar_experimentos_da_los_mismos_numeros(tmp_path):
         b = pd.read_csv(os.path.join(nuevos, rel))
         assert list(a.columns) == list(b.columns), rel
         for col in a.columns:
-            if col == "tiempo_medio_s":      # el tiempo cambia en cada maquina
+            if col.startswith("tiempo"):     # el tiempo cambia en cada maquina
                 continue
             if a[col].dtype == object:
                 assert list(a[col]) == list(b[col]), (rel, col)
@@ -48,7 +48,7 @@ def test_regenerar_experimentos_da_los_mismos_numeros(tmp_path):
                 assert np.allclose(a[col], b[col], rtol=1e-9, atol=0), (rel, col)
     pngs = [os.path.join(r, x) for r, _, xs in os.walk(nuevos) for x in xs
             if x.endswith(".png")]
-    assert len(pngs) == 33
+    assert len(pngs) == 34
 
 
 def test_panorama_cuadra_con_los_csv():
@@ -84,7 +84,7 @@ def test_estructura_de_resultados():
                       if os.path.isdir(os.path.join(RES, d)))
     assert carpetas == ["0_base", "1_Rastrigin", "2_Ackley", "3_Sphere",
                         "4_Rosenbrock", "5_Beale", "6_sesgo_centro",
-                        "7_panorama", "8_combinaciones"]
+                        "7_panorama", "8_combinaciones", "9_tabla_25"]
     for d in carpetas[1:6]:
         for p in ["n_ballenas", "max_iter", "a_inicial", "b", "p_umbral"]:
             for ext in ("csv", "png"):
@@ -93,7 +93,8 @@ def test_estructura_de_resultados():
 
 def test_csv_tienen_sentido():
     for rel in _csvs(RES):
-        if (rel.startswith("7_panorama") or rel.endswith("finales.csv")
+        if (rel.startswith(("7_panorama", "9_tabla_25"))
+                or rel.endswith("finales.csv")
                 or rel.endswith("rosenbrock.csv")):
             continue                          # una fila por corrida, aparte
         df = pd.read_csv(os.path.join(RES, rel))
@@ -195,8 +196,8 @@ def test_diseno_cuadra_con_los_csv():
     # cada fila de la tabla 3 (salvo la base) es un valor que si se corrio
     barr, cambia = diseno.filas_barridos()
     col_a_par = {v: k for k, v in diseno.COLUMNAS_PAR.items()}
-    for (_, fila), col in zip(barr.iterrows(), cambia):
-        if col:
+    for (_, fila), cols in zip(barr.iterrows(), cambia):
+        for col in cols:
             par = col_a_par[col]
             assert np.isclose(fin[fin.parametro == par].valor,
                               float(fila[col])).any(), (par, fila[col])
@@ -206,7 +207,9 @@ def test_diseno_cuadra_con_los_csv():
     assert len(ses) * diseno.N_CORRIDAS == t["sesgo"]
     ros = pd.read_csv(os.path.join(RES, "6_sesgo_centro", "rosenbrock.csv"))
     assert ros.corridas.sum() == t["rosenbrock"]
-    assert t["total"] == 13125
+    t25 = pd.read_csv(diseno.CSV_TABLA_25)
+    assert len(t25) == t["tabla_25"] == 125
+    assert t["total"] == 13250
 
 
 def test_pdf_del_diseno_existe():
@@ -231,3 +234,62 @@ def test_beale_siempre_tiene_entre_2_y_7_atoradas():
     t = diseno.tabla_por_valor(fin, "Beale")
     assert t.iloc[:, -1].between(2, 7).all()
     assert t.iloc[:, -1].min() == 2 and t.iloc[:, -1].max() == 7
+
+
+# --------------------------------------------------------------------------
+# 4) Tabla 1 del reporte (diseno de Diana): 25 ejecuciones por funcion
+# --------------------------------------------------------------------------
+# (n_ballenas, max_iter, a, b, p, seed) de cada fila, copiados de la tabla
+TABLA_DIANA = (
+    [(30, 200, 2.0, 1.0, 0.5, s) for s in range(5)]
+    + [(n, 200, 2.0, 1.0, 0.5, 0) for n in (5, 15, 50, 80, 120)]
+    + [(30, t, 2.0, 1.0, 0.5, 0) for t in (50, 100, 300, 500, 1000)]
+    + [(30, 200, a, 1.0, 0.5, 0) for a in (0.5, 1.0, 3.0)]
+    + [(30, 200, 2.0, 1.0, p, 0) for p in (0.2, 0.8)]
+    + [(30, 200, 2.0, b, 0.5, 0) for b in (0.2, 2.5)]
+    + [(15, 100, 2.0, 1.0, 0.5, 0), (60, 400, 2.5, 1.0, 0.5, 0),
+       (30, 200, 2.0, 1.0, 0.5, 0)])
+CLAVES = ["n_ballenas", "max_iter", "a_inicial", "b", "p_umbral", "seed"]
+
+
+def test_tabla_25_es_la_de_diana():
+    df = pd.read_csv(os.path.join(RES, "9_tabla_25", "corridas.csv"))
+    assert len(df) == 125
+    for nom, d in df.groupby("funcion"):
+        d = d.sort_values("ejecucion")
+        assert list(d.ejecucion) == list(range(1, 26))
+        dos = nom in ("Ackley", "Beale")
+        for k, (fila, esperado) in enumerate(
+                zip(d[CLAVES].itertuples(index=False), TABLA_DIANA), start=1):
+            if k == 25 and dos:
+                esperado = (50, 300, 1.5, 0.5, 0.3, 0)
+            assert np.allclose(tuple(fila), esperado), (nom, k)
+        dims = list(d.dim)
+        assert dims[:24] == [2 if dos else 10] * 24, nom
+        assert dims[24] == (2 if dos else 30), nom
+
+
+def test_tabla_25_cuadra_con_los_barridos():
+    """Filas con la misma configuracion y semilla que un barrido de 30
+    corridas dan exactamente lo mismo."""
+    t = pd.read_csv(os.path.join(RES, "9_tabla_25", "corridas.csv"))
+    f = pd.read_csv(os.path.join(RES, "7_panorama", "finales.csv"))
+    casos = {k: ("n_ballenas", 30, k - 1) for k in range(1, 6)}
+    casos.update({8: ("n_ballenas", 50, 0), 11: ("max_iter", 50, 0),
+                  12: ("max_iter", 100, 0), 14: ("max_iter", 500, 0),
+                  17: ("a_inicial", 1.0, 0), 18: ("a_inicial", 3.0, 0),
+                  19: ("p_umbral", 0.2, 0), 20: ("p_umbral", 0.8, 0)})
+    for nom in t.funcion.unique():
+        for k, (par, v, c) in casos.items():
+            a = t[(t.funcion == nom) & (t.ejecucion == k)].mejor_f.iloc[0]
+            b = f[(f.funcion == nom) & (f.parametro == par) & (f.valor == v)
+                  & (f.corrida == c)].mejor_f.iloc[0]
+            assert a == b, (nom, k)
+
+
+def test_nota_de_beale_en_la_tabla_25():
+    # notas(): "en Beale la fila 3 se atora en 0.76 y las 1, 2, 4 y 5 no"
+    t = pd.read_csv(os.path.join(RES, "9_tabla_25", "corridas.csv"))
+    b = t[t.funcion == "Beale"].set_index("ejecucion").mejor_f
+    assert reporte.coincide(b[3], "0.76")
+    assert all(b[k] < 1e-6 for k in (1, 2, 4, 5))

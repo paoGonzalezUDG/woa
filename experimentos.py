@@ -10,6 +10,7 @@ Uso:  python experimentos.py            (corre todo y actualiza; ~20 min)
       python experimentos.py --solo-sesgo          (6_sesgo_centro)
       python experimentos.py --solo-panorama       (7_panorama)
       python experimentos.py --solo-combinaciones  (8_combinaciones, ~12 min)
+      python experimentos.py --solo-tabla-25       (9_tabla_25, ~1 min)
       python experimentos.py --solo-reporte        (solo la guia, al instante)
 """
 import argparse
@@ -505,6 +506,133 @@ def figura_terrenos(plt, ruta, n=91):   # impar: pasa por el centro
     plt.close(fig)
 
 
+# --------------------------------------------------------------------------
+# Tabla 1 del reporte (diseno de Diana): 25 ejecuciones por funcion, UNA
+# corrida por fila con la semilla indicada, 125 corridas en total.
+# Cada fila guarda solo lo que cambia respecto a PARAMS_DEFAULT (y dim).
+# La fila 25 es distinta segun la funcion: las de n variables pasan a 30
+# variables; Ackley y Beale (solo 2 variables) usan un ajuste fino.
+# --------------------------------------------------------------------------
+CARPETA_TABLA_25 = "resultados/9_tabla_25"
+TABLA_25 = [
+    (1, "1. Base y azar", {}, 0, "Referencia principal de control."),
+    (2, "1. Base y azar", {}, 1, "Variabilidad por inicialización aleatoria."),
+    (3, "1. Base y azar", {}, 2, "Variabilidad por inicialización aleatoria."),
+    (4, "1. Base y azar", {}, 3, "Variabilidad por inicialización aleatoria."),
+    (5, "1. Base y azar", {}, 4, "Variabilidad por inicialización aleatoria."),
+    (6, "2. Población (N)", {"n_ballenas": 5}, 0,
+     "Población mínima (alto riesgo de estancamiento)."),
+    (7, "2. Población (N)", {"n_ballenas": 15}, 0,
+     "Población pequeña (mitad de la base)."),
+    (8, "2. Población (N)", {"n_ballenas": 50}, 0, "Población media-alta."),
+    (9, "2. Población (N)", {"n_ballenas": 80}, 0,
+     "Población grande (mayor cobertura inicial)."),
+    (10, "2. Población (N)", {"n_ballenas": 120}, 0,
+     "Población muy densa (punto de saturación)."),
+    (11, "3. Iteraciones", {"max_iter": 50}, 0,
+     "Convergencia temprana con pocas vueltas."),
+    (12, "3. Iteraciones", {"max_iter": 100}, 0,
+     "Mitad del presupuesto estándar."),
+    (13, "3. Iteraciones", {"max_iter": 300}, 0, "Refinamiento extendido."),
+    (14, "3. Iteraciones", {"max_iter": 500}, 0,
+     "Alta precisión de convergencia."),
+    (15, "3. Iteraciones", {"max_iter": 1000}, 0,
+     "Límite de estabilización asintótica."),
+    (16, "4. Expl. / Explot.", {"a_inicial": 0.5}, 0,
+     "Explotación pura (|A| < 1 desde el inicio)."),
+    (17, "4. Expl. / Explot.", {"a_inicial": 1.0}, 0,
+     "Umbral límite sin búsqueda aleatoria."),
+    (18, "4. Expl. / Explot.", {"a_inicial": 3.0}, 0,
+     "Fase de exploración global prolongada."),
+    (19, "4. Expl. / Explot.", {"p_umbral": 0.2}, 0,
+     "Predomina ataque en espiral (80% espiral)."),
+    (20, "4. Expl. / Explot.", {"p_umbral": 0.8}, 0,
+     "Predomina cerco y búsqueda (20% espiral)."),
+    (21, "5. Espiral y comb.", {"b": 0.2}, 0,
+     "Espiral logarítmica muy cerrada/estrecha."),
+    (22, "5. Espiral y comb.", {"b": 2.5}, 0,
+     "Espiral logarítmica muy abierta/amplia."),
+    (23, "5. Espiral y comb.", {"n_ballenas": 15, "max_iter": 100}, 0,
+     "Escenario combinado ligero (bajo costo)."),
+    (24, "5. Espiral y comb.",
+     {"n_ballenas": 60, "max_iter": 400, "a_inicial": 2.5}, 0,
+     "Escenario combinado intensivo (alta exploración)."),
+    (25, "5. Espiral y comb.", {"dim": 30}, 0,
+     "Escalabilidad a d=30 (o ajuste fino en 2D*)."),
+]
+# Fila 25 en Ackley y Beale (no existen con 30 variables)
+FILA_25_DOS_VARIABLES = {"n_ballenas": 50, "max_iter": 300, "a_inicial": 1.5,
+                         "b": 0.5, "p_umbral": 0.3}
+
+
+def filas_tabla_25(nombre_f):
+    """Las 25 filas de una funcion: (num, bloque, params, dim, seed, texto)."""
+    cfg = FUNCIONES[nombre_f]
+    filas = []
+    for num, bloque, cambios, seed, texto in TABLA_25:
+        cambios = dict(cambios)
+        if "dim" in cambios and cfg["dim"] is not None:
+            cambios = dict(FILA_25_DOS_VARIABLES)    # Ackley / Beale
+        dim = cambios.pop("dim", None) or cfg["dim"] or cfg["dim_default"]
+        filas.append((num, bloque, {**PARAMS_DEFAULT, **cambios}, int(dim),
+                      seed, texto))
+    return filas
+
+
+def experimento_tabla_25(plt, carpeta=CARPETA_TABLA_25):
+    """Corre las 25 filas en las 5 funciones (125 corridas, ~1 min)."""
+    os.makedirs(carpeta, exist_ok=True)
+    filas = []
+    for nombre, cfg in FUNCIONES.items():
+        for num, bloque, p, dim, seed, texto in filas_tabla_25(nombre):
+            t0 = time.perf_counter()
+            r = woa(cfg["f"], cfg["lb"], cfg["ub"], dim, seed=seed, **p)
+            seg = time.perf_counter() - t0
+            filas.append({"funcion": nombre, "ejecucion": num,
+                          "bloque": bloque, **p, "dim": dim, "seed": seed,
+                          "mejor_f": r["mejor_f"],
+                          "distancia_optimo": float(np.linalg.norm(
+                              r["mejor_x"] - cfg["optimo_x"](dim))),
+                          "tiempo_s": seg, "que_se_evalua": texto})
+        print(nombre, "tabla 25 lista")
+    df = pd.DataFrame(filas)
+    df.to_csv(f"{carpeta}/corridas.csv", index=False)
+    figura_tabla_25(df, plt, f"{carpeta}/resultados.png")
+    return df
+
+
+def figura_tabla_25(df, plt, ruta):
+    """Mapa de calor: funcion x ejecucion, color = log10 del mejor valor."""
+    nombres = list(FUNCIONES)
+    nums = sorted(df.ejecucion.unique())
+    m = np.array([[df[(df.funcion == f) & (df.ejecucion == k)].mejor_f
+                   .iloc[0] for k in nums] for f in nombres])
+    # Escala recortada: todo lo que baja de 1e-16 es "practicamente 0"
+    # (si no, un 1e-185 de Sphere se come todos los colores).
+    abajo, arriba = -16, 2
+    color = np.clip(np.log10(np.maximum(m, 1e-300)), abajo, arriba)
+    fig, ax = plt.subplots(figsize=(18, 4.6))
+    im = ax.imshow(color, cmap="RdYlGn_r", vmin=abajo, vmax=arriba,
+                   aspect="auto")
+    for i in range(m.shape[0]):
+        for j in range(m.shape[1]):
+            v = m[i, j]
+            txt = "0" if v == 0 else (f"{v:.0e}".replace("e-0", "e-")
+                                      if v < 0.01 else f"{v:.2g}")
+            ax.text(j, i, txt, ha="center", va="center", fontsize=7)
+    ax.set_xticks(range(len(nums)), [str(k) for k in nums])
+    ax.set_yticks(range(len(nombres)), nombres)
+    ax.set_xlabel("Ejecución (fila de la Tabla 1)")
+    cb = fig.colorbar(im, ax=ax, pad=0.01)
+    cb.set_ticks([abajo, -12, -8, -4, 0, arriba])
+    cb.set_ticklabels(["≤1e-16", "1e-12", "1e-8", "1e-4", "1", "100"])
+    cb.set_label("Mejor valor (verde = casi 0)")
+    ax.set_title("Tabla 1: mejor valor de cada ejecución (1 corrida por fila)")
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=130)
+    plt.close(fig)
+
+
 def main():
     import matplotlib
     matplotlib.use("Agg")
@@ -519,6 +647,9 @@ def main():
                     help="solo la figura con todas las cajas (7_panorama)")
     ap.add_argument("--solo-combinaciones", action="store_true",
                     help="solo el experimento de combinaciones (~12 min)")
+    ap.add_argument("--solo-tabla-25", action="store_true",
+                    help="solo la Tabla 1 del reporte: 25 ejecuciones por "
+                         "funcion, 1 corrida cada una (9_tabla_25, ~1 min)")
     ap.add_argument("--solo-reporte", action="store_true",
                     help="no correr nada: solo actualizar la guia del "
                          "reporte con los CSV que ya existen")
@@ -530,6 +661,8 @@ def main():
         experimento_rosenbrock(n, plt)
     elif args.solo_panorama:
         experimento_panorama(n, plt)
+    elif args.solo_tabla_25:
+        experimento_tabla_25(plt)
     elif args.solo_combinaciones:
         experimento_combinaciones(n_comb, plt)
     elif not args.solo_reporte:
@@ -692,6 +825,10 @@ def generar_todo(n, n_comb, plt):
 
     # 4) Combinaciones de a, b y p con el mismo esfuerzo
     experimento_combinaciones(n_comb, plt)
+
+    # 5) Tabla 1 del reporte: 25 ejecuciones por funcion (1 corrida cada
+    #    una; no depende de --rapido)
+    experimento_tabla_25(plt)
 
 
 if __name__ == "__main__":

@@ -11,14 +11,15 @@ navegador con las 5 funciones: 0 errores).
 - [ ] **Escribirlo con sus propias palabras** y en tono formal, siguiendo
       [reporte_referencia.md](reporte_referencia.md) (también en la app,
       sección *Reporte*).
-- [ ] **Sección 3 (experimentación): corregir la Tabla 1 de Diana.** La que
-      tienen (25 corridas por función, seed 0, N = 5/15/80/120, T = 300/1000,
-      b = 0.2/2.5, d = 30…) **no es lo que se corrió**. Lo real está en la
-      app (*Resultados › Diseño del experimento*) y en
-      `docs/diseno_experimental.pdf`: 30 corridas por configuración
-      (semillas 0–29), 13 configuraciones por función y 13,125 corridas en
-      total. El texto también dice que 200 vueltas es "de la literatura" y
-      que siempre cambia un solo ajuste: las dos cosas son falsas.
+- [ ] **Sección 3 (experimentación):** la Tabla 1 de Diana (25 ejecuciones
+      por función, 1 corrida cada una) **ya se corrió tal cual**:
+      `resultados/9_tabla_25/` y la app (*Resultados › Diseño del
+      experimento*, tablas 3 y 4). Falta corregir dos frases del texto:
+      que 200 vueltas es "estándar de la literatura" (la elegimos nosotras;
+      el artículo usa 500) y que "se modifica un parámetro a la vez" (las
+      filas 23, 24 y 25 mueven varios). Y decir que con 1 corrida por fila
+      pesa mucho el azar (Beale, fila 3): para comparar, las medianas de 30
+      corridas.
 - [ ] **Discusión de cada parámetro** (sección 4.2 de la guía, figuras 2 a
       10). Para no poner tantas gráficas, pueden usar una sola:
       `resultados/7_panorama/cajas.png` (las 25 cajas juntas).

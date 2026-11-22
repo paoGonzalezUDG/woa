@@ -44,7 +44,8 @@ Correr todo desde la raiz del proyecto.
   (HTML impreso con Edge/Chrome headless; no hay reportlab). Si cambian los
   experimentos, regenerar el PDF. Pestana Resultados > Diseño del experimento.
   Seccion 5 "Que pasa en cada funcion": `EXPLICACION`, `RESUMEN`,
-  `NO_HACE_FALTA` (texto a mano) y `DATOS` (sus numeros; una prueba los
+  `NO_HACE_FALTA` (texto a mano; secciones 1-6 = tablas: 3 y 4 son la
+  Tabla 1 de 25 ejecuciones y sus resultados, 5 los barridos) y `DATOS` (sus numeros; una prueba los
   compara con finales.csv: si cambian los resultados, corregir el texto).
 - `interfaz/combinaciones.py`: lee `8_combinaciones/resumen.csv`; tabla top,
   `figura_lugar_promedio` (que valor de cada ajuste queda mas arriba) y
@@ -79,6 +80,11 @@ Correr todo desde la raiz del proyecto.
   finales.csv = una fila por corrida (funcion, parametro, valor, corrida,
   mejor_f); cajas.png = las 25 cajas en una figura 5x5, log por fila, ceros
   en un piso marcado "0 exacto".
+  `9_tabla_25/` (`--solo-tabla-25`, ~20 s): la Tabla 1 del reporte (diseno
+  de Diana) = `TABLA_25` en experimentos.py: 25 filas x 5 funciones, UNA
+  corrida por fila con su semilla; fila 25 = 30 variables o
+  `FILA_25_DOS_VARIABLES` en Ackley/Beale. corridas.csv + resultados.png.
+  Las filas con la misma config y semilla que un barrido dan lo mismo.
   `8_combinaciones/` (`--solo-combinaciones`, ~12 min): 81 combinaciones =
   `REPARTOS` (10x600, 30x200, 60x100: mismo esfuerzo 6000) x a x b x p, 25
   corridas (semillas 0-24). resumen.csv con `lugar` (mediana, luego media,

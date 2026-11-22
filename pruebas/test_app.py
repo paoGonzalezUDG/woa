@@ -414,7 +414,8 @@ def test_pestana_diseno_del_experimento(app):
     assert any(len(t) == len(barr) and list(t.columns) == list(barr.columns)
                for t in tablas)
     textos = " ".join(m.value for m in app.markdown)
-    assert "13,125" in textos
+    assert f"{diseno.totales()['total']:,}" in textos
+    assert any(len(t) == 25 for t in tablas)          # la tabla de Diana
 
 
 @pytest.mark.parametrize("nombre", FUNC)

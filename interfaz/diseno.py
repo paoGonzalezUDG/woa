@@ -17,11 +17,13 @@ import tempfile
 import pandas as pd
 
 from algoritmo.funciones import FUNCIONES
-from experimentos import (BARRIDOS, CASOS_ROSENBROCK, N_COMBINACIONES,
-                          PARAMS_DEFAULT, REPARTOS, SESGO)
+from experimentos import (BARRIDOS, CARPETA_TABLA_25, CASOS_ROSENBROCK,
+                          FILA_25_DOS_VARIABLES, N_COMBINACIONES,
+                          PARAMS_DEFAULT, REPARTOS, SESGO, TABLA_25)
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PDF = os.path.join(RAIZ, "docs", "diseno_experimental.pdf")
+CSV_TABLA_25 = os.path.join(RAIZ, CARPETA_TABLA_25, "corridas.csv")
 
 # Corridas por configuracion: experimentos.main() usa 30 (5 con --rapido).
 N_CORRIDAS = 30
@@ -99,7 +101,9 @@ def tabla_base():
         ("b (espiral)", _g(PARAMS_DEFAULT["b"]), "Valor del artículo"),
         ("Umbral de p", _g(PARAMS_DEFAULT["p_umbral"]), "Valor del artículo"),
         ("Corridas por configuración", str(N_CORRIDAS),
-         f"Semillas {_semillas(N_CORRIDAS)}, las mismas en todas"),
+         f"En los barridos (Tabla 5): semillas {_semillas(N_CORRIDAS)}, las "
+         "mismas en todas. En la Tabla 3 es 1 corrida por fila, con la "
+         "semilla indicada"),
     ]
     return pd.DataFrame(filas, columns=["Ajuste", "Valor", "Nota"])
 
@@ -122,7 +126,7 @@ def tabla_funciones():
 
 def filas_barridos():
     """Base + cada valor distinto al de por defecto (un ajuste a la vez).
-    Devuelve (DataFrame, lista con el parametro que cambia en cada fila)."""
+    Devuelve (DataFrame, lista con el conjunto de columnas que cambian)."""
     filas, cambia = [], []
 
     def fila(bloque, p, que):
@@ -134,19 +138,69 @@ def filas_barridos():
                       "Corridas": N_CORRIDAS, "Qué se ve": que})
 
     fila("Base", PARAMS_DEFAULT, "Punto de comparación para todo lo demás")
-    cambia.append(None)
+    cambia.append(set())
     for par, valores in BARRIDOS.items():
         for v in valores:
             if v == PARAMS_DEFAULT[par]:
                 continue
             fila(NOMBRE_BLOQUE[par], {**PARAMS_DEFAULT, par: v},
                  _que_se_ve(par, v))
-            cambia.append(COLUMNAS_PAR[par])
+            cambia.append({COLUMNAS_PAR[par]})
     return pd.DataFrame(filas), cambia
 
 
 def tabla_barridos():
     return filas_barridos()[0]
+
+
+def filas_tabla_25():
+    """Tabla 1 del reporte (diseno de Diana): 25 ejecuciones, 1 corrida cada
+    una. Devuelve (DataFrame, lista con el conjunto de columnas que cambian
+    en cada fila respecto a la base)."""
+    fijas = {c["dim"] for c in FUNCIONES.values() if c["dim"]}
+    filas, cambia = [], []
+    for num, bloque, cambios, seed, texto in TABLA_25:
+        p = {**PARAMS_DEFAULT, **{k: v for k, v in cambios.items()
+                                  if k != "dim"}}
+        if "dim" in cambios:
+            dims = (f"{cambios['dim']} / "
+                    + " / ".join(str(d) for d in sorted(fijas)) + "*")
+        else:
+            dims = _dims()
+        filas.append({"#": num, "Bloque": bloque,
+                      **{COLUMNAS_PAR[k]: _g(p[k]) for k in COLUMNAS_PAR},
+                      "Variables": dims, "Semilla": seed,
+                      "Qué se evalúa": texto})
+        cols = {COLUMNAS_PAR[k] for k in cambios if k in COLUMNAS_PAR}
+        if "dim" in cambios:
+            cols.add("Variables")
+        if bloque.startswith("1.") and seed != 0:
+            cols.add("Semilla")
+        cambia.append(cols)
+    return pd.DataFrame(filas), cambia
+
+
+def tabla_25():
+    return filas_tabla_25()[0]
+
+
+def nota_fila_25():
+    """Texto de la fila 25 para las funciones de 2 variables."""
+    dos = [n for n, c in FUNCIONES.items() if c["dim"] is not None]
+    p = FILA_25_DOS_VARIABLES
+    return (f"\\* Fila 25: las funciones de n variables pasan a 30 variables "
+            f"(con los demás valores de la base). {' y '.join(dos)} solo "
+            f"existen con 2 variables, así que en la fila 25 usan un ajuste "
+            f"fino: {p['n_ballenas']} ballenas, {p['max_iter']} vueltas, "
+            f"a = {_g(p['a_inicial'])}, b = {_g(p['b'])}, "
+            f"p = {_g(p['p_umbral'])}.")
+
+
+def tabla_25_resultados(df):
+    """Mejor valor de cada ejecucion (filas) en cada funcion (columnas)."""
+    t = df.pivot(index="ejecucion", columns="funcion", values="mejor_f")
+    t = t[list(FUNCIONES)].reset_index().rename(columns={"ejecucion": "#"})
+    return t
 
 
 def tabla_adicionales():
@@ -206,9 +260,10 @@ def totales():
         "combinaciones": nf * n_comb * N_COMBINACIONES,
         "sesgo": len(SESGO) * 2 * N_CORRIDAS,
         "rosenbrock": len(CASOS_ROSENBROCK) * N_CORRIDAS,
+        "tabla_25": nf * len(TABLA_25),
     }
     t["total"] = (t["base"] + t["barridos"] + t["combinaciones"] + t["sesgo"]
-                  + t["rosenbrock"])
+                  + t["rosenbrock"] + t["tabla_25"])
     return t
 
 
@@ -218,24 +273,32 @@ def notas():
     nf = len(FUNCIONES)
     distintas = len(tabla_barridos())
     return [
-        f"En cada función son {distintas} configuraciones × {N_CORRIDAS} "
-        f"corridas; en las {nf} funciones, **{_miles(t['barridos_distintas'])} "
-        "corridas distintas**. En los CSV de cada función la base aparece "
-        "otra vez dentro de cada barrido (con las mismas semillas sale "
-        f"idéntica); por eso `finales.csv` tiene {_miles(t['barridos'])} filas.",
-        f"**Total ejecutado:** {_miles(t['base'])} (base) + "
-        f"{_miles(t['barridos'])} (barridos) + {_miles(t['combinaciones'])} "
-        f"(combinaciones) + {_miles(t['sesgo'])} (sesgo) + "
-        f"{_miles(t['rosenbrock'])} (Rosenbrock) = **{_miles(t['total'])} "
-        "corridas**. Algunas se repiten: la base, el caso original del sesgo "
-        "y la combinación 30×200 con valores por defecto.",
-        "Solo las combinaciones (y la mejor combinación de Rosenbrock) mueven "
-        "varios ajustes a la vez, y es a propósito. En todo lo demás cambia "
-        "un solo ajuste.",
-        "Ackley y Beale solo existen con 2 variables. No hay corridas con 30 "
-        "variables en `resultados/`.",
-        "\\* Sphere y Rosenbrock no tienen límite en Wikipedia: la zona de "
-        "búsqueda la elegimos nosotras.",
+        f"**Tabla 3:** {len(TABLA_25)} ejecuciones por función, **una sola "
+        f"corrida cada una** con la semilla indicada: {_miles(t['tabla_25'])} "
+        f"corridas en las {nf} funciones (`{CARPETA_TABLA_25}/`). Con una "
+        "sola corrida pesa mucho el azar: por ejemplo, en Beale la fila 3 "
+        "(base, semilla 2) se atora en 0.76 y las filas 1, 2, 4 y 5 (misma "
+        "configuración, otra semilla) no.",
+        f"**Tabla 5:** en cada función son {distintas} configuraciones × "
+        f"{N_CORRIDAS} corridas; en las {nf} funciones, "
+        f"**{_miles(t['barridos_distintas'])} corridas distintas**. Son las "
+        "que usan las gráficas de caja y las medianas del reporte. En los "
+        "CSV de cada función la base aparece otra vez dentro de cada barrido "
+        "(con las mismas semillas sale idéntica); por eso `finales.csv` "
+        f"tiene {_miles(t['barridos'])} filas.",
+        f"**Total ejecutado:** {_miles(t['tabla_25'])} (Tabla 3) + "
+        f"{_miles(t['base'])} (base) + {_miles(t['barridos'])} (barridos) + "
+        f"{_miles(t['combinaciones'])} (combinaciones) + "
+        f"{_miles(t['sesgo'])} (sesgo) + {_miles(t['rosenbrock'])} "
+        f"(Rosenbrock) = **{_miles(t['total'])} corridas**. Algunas se "
+        "repiten: las filas de la Tabla 3 con la misma configuración y "
+        "semilla que un barrido dan exactamente lo mismo.",
+        "Mueven varios ajustes a la vez: las filas 23, 24 y 25 de la Tabla "
+        "3, las combinaciones y la mejor combinación de Rosenbrock. En todo "
+        "lo demás cambia un solo ajuste.",
+        nota_fila_25(),
+        "Sphere y Rosenbrock no tienen límite en Wikipedia: la zona de "
+        "búsqueda (marcada con \\* en la Tabla 2) la elegimos nosotras.",
     ]
 
 
@@ -255,17 +318,30 @@ def _tabla_html(df, resaltar=None):
     for i, (_, fila) in enumerate(df.iterrows()):
         celdas = []
         for c, v in fila.items():
-            clase = ' class="cambia"' if resaltar and resaltar[i] == c else ""
+            clase = ' class="cambia"' if resaltar and c in resaltar[i] else ""
             celdas.append(f"<td{clase}>{html.escape(str(v))}</td>")
         cuerpo.append("<tr>" + "".join(celdas) + "</tr>")
     return (f"<table><thead><tr>{cab}</tr></thead><tbody>"
             + "".join(cuerpo) + "</tbody></table>")
 
 
+def _corto(x):
+    return "0" if x == 0 else f"{x:.2e}"
+
+
 def html_diseno():
     barr, cambia = filas_barridos()
+    t25, cambia25 = filas_tabla_25()
     nf = len(FUNCIONES)
     notas_html = "".join(f"<li>{_negritas(n)}</li>" for n in notas())
+    if os.path.exists(CSV_TABLA_25):
+        res = tabla_25_resultados(pd.read_csv(CSV_TABLA_25))
+        for c in FUNCIONES:
+            res[c] = res[c].map(_corto)
+        res_html = (f"<h2>Tabla 4. Mejor valor de cada ejecución de la "
+                    f"Tabla 3 (1 corrida)</h2>{_tabla_html(res)}")
+    else:
+        res_html = ""
     return f"""<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
 <title>Diseño experimental - WOA</title>
@@ -274,7 +350,8 @@ def html_diseno():
 body {{ font-family: "Segoe UI", Arial, sans-serif; color: #1c2b3a;
         font-size: 10pt; }}
 h1 {{ font-size: 17pt; margin: 0 0 2px; color: #12385c; }}
-h2 {{ font-size: 12pt; margin: 18px 0 6px; color: #12385c; }}
+h2 {{ font-size: 12pt; margin: 18px 0 6px; color: #12385c;
+      break-after: avoid; page-break-after: avoid; }}
 p.sub {{ margin: 0 0 10px; color: #555; }}
 table {{ border-collapse: collapse; width: 100%; page-break-inside: auto; }}
 tr {{ page-break-inside: avoid; }}
@@ -294,11 +371,17 @@ el código del proyecto (<code>experimentos.py</code>).</p>
 {_tabla_html(tabla_base())}
 <h2>Tabla 2. Funciones de prueba</h2>
 {_tabla_html(tabla_funciones())}
-<h2>Tabla 3. Un ajuste a la vez (igual en las {nf} funciones)</h2>
-<p class="aviso">En azul, el valor que cambia respecto a la base.
-Variables: {_dims()} = las funciones de n variables / Ackley y Beale.</p>
+<h2>Tabla 3. Diseño experimental de {len(TABLA_25)} ejecuciones por función
+matemática</h2>
+<p class="aviso">Una corrida por fila. En azul, lo que cambia respecto a la
+base. Variables: {_dims()} = las funciones de n variables / Ackley y Beale.
+{_negritas(nota_fila_25())}</p>
+{_tabla_html(t25, cambia25)}
+{res_html}
+<h2>Tabla 5. Barridos con {N_CORRIDAS} corridas por valor (los que usan las
+gráficas; igual en las {nf} funciones)</h2>
 {_tabla_html(barr, cambia)}
-<h2>Tabla 4. Experimentos adicionales</h2>
+<h2>Tabla 6. Experimentos adicionales</h2>
 {_tabla_html(tabla_adicionales())}
 <h2>Notas</h2>
 <ul>{notas_html}</ul>

@@ -1,0 +1,126 @@
+funcion,ejecucion,bloque,n_ballenas,max_iter,a_inicial,b,p_umbral,dim,seed,mejor_f,distancia_optimo,tiempo_s,que_se_evalua
+Rastrigin,1,1. Base y azar,30,200,2.0,1.0,0.5,10,0,0.0,8.684627815513268e-09,0.14767720000054396,Referencia principal de control.
+Rastrigin,2,1. Base y azar,30,200,2.0,1.0,0.5,10,1,0.0,6.1776576553447275e-09,0.08233549999931711,Variabilidad por inicialización aleatoria.
+Rastrigin,3,1. Base y azar,30,200,2.0,1.0,0.5,10,2,0.0,6.6000965918686456e-09,0.1117952000004152,Variabilidad por inicialización aleatoria.
+Rastrigin,4,1. Base y azar,30,200,2.0,1.0,0.5,10,3,0.0,7.358766108945525e-09,0.08791659999951662,Variabilidad por inicialización aleatoria.
+Rastrigin,5,1. Base y azar,30,200,2.0,1.0,0.5,10,4,0.0,8.815447611433693e-09,0.0773802000003343,Variabilidad por inicialización aleatoria.
+Rastrigin,6,2. Población (N),5,200,2.0,1.0,0.5,10,0,0.0,8.804088015935255e-09,0.014473999999609077,Población mínima (alto riesgo de estancamiento).
+Rastrigin,7,2. Población (N),15,200,2.0,1.0,0.5,10,0,0.0,7.628684119768628e-09,0.039540499999930034,Población pequeña (mitad de la base).
+Rastrigin,8,2. Población (N),50,200,2.0,1.0,0.5,10,0,0.0,9.640165858772033e-09,0.126834400000007,Población media-alta.
+Rastrigin,9,2. Población (N),80,200,2.0,1.0,0.5,10,0,0.0,7.296246811967632e-09,0.20168349999948987,Población grande (mayor cobertura inicial).
+Rastrigin,10,2. Población (N),120,200,2.0,1.0,0.5,10,0,0.0,9.415561679588647e-09,0.366432500000883,Población muy densa (punto de saturación).
+Rastrigin,11,3. Iteraciones,30,50,2.0,1.0,0.5,10,0,6.072464756812224e-06,0.00017495257434555275,0.019775700000536744,Convergencia temprana con pocas vueltas.
+Rastrigin,12,3. Iteraciones,30,100,2.0,1.0,0.5,10,0,0.0,9.419782125048383e-09,0.05554469999879075,Mitad del presupuesto estándar.
+Rastrigin,13,3. Iteraciones,30,300,2.0,1.0,0.5,10,0,0.0,8.801058952870709e-09,0.13389949999873352,Refinamiento extendido.
+Rastrigin,14,3. Iteraciones,30,500,2.0,1.0,0.5,10,0,0.0,1.1122446104697038e-08,0.26409400000011374,Alta precisión de convergencia.
+Rastrigin,15,3. Iteraciones,30,1000,2.0,1.0,0.5,10,0,0.0,9.360786642563459e-09,0.5072010999992926,Límite de estabilización asintótica.
+Rastrigin,16,4. Expl. / Explot.,30,200,0.5,1.0,0.5,10,0,51.81609542069008,4.7970432775242955,0.12319569999999658,Explotación pura (|A| < 1 desde el inicio).
+Rastrigin,17,4. Expl. / Explot.,30,200,1.0,1.0,0.5,10,0,0.0,7.906634376888086e-09,0.08485429999927874,Umbral límite sin búsqueda aleatoria.
+Rastrigin,18,4. Expl. / Explot.,30,200,3.0,1.0,0.5,10,0,0.0,7.287815679485385e-09,0.07731950000015786,Fase de exploración global prolongada.
+Rastrigin,19,4. Expl. / Explot.,30,200,2.0,1.0,0.2,10,0,2.842170943040401e-14,1.3708667438931354e-08,0.07788799999980256,Predomina ataque en espiral (80% espiral).
+Rastrigin,20,4. Expl. / Explot.,30,200,2.0,1.0,0.8,10,0,0.0,4.358985161668418e-09,0.07532809999975143,Predomina cerco y búsqueda (20% espiral).
+Rastrigin,21,5. Espiral y comb.,30,200,2.0,0.2,0.5,10,0,0.0,7.326726939794633e-09,0.07722579999972368,Espiral logarítmica muy cerrada/estrecha.
+Rastrigin,22,5. Espiral y comb.,30,200,2.0,2.5,0.5,10,0,0.0,8.188298306977683e-09,0.07705720000012661,Espiral logarítmica muy abierta/amplia.
+Rastrigin,23,5. Espiral y comb.,15,100,2.0,1.0,0.5,10,0,2.3443647023668746e-10,1.0870475189911068e-06,0.01990470000055211,Escenario combinado ligero (bajo costo).
+Rastrigin,24,5. Espiral y comb.,60,400,2.5,1.0,0.5,10,0,0.0,1.0141998271927009e-08,0.30718010000055074,Escenario combinado intensivo (alta exploración).
+Rastrigin,25,5. Espiral y comb.,30,200,2.0,1.0,0.5,30,0,0.0,1.3670984155973643e-08,0.07888020000063989,Escalabilidad a d=30 (o ajuste fino en 2D*).
+Ackley,1,1. Base y azar,30,200,2.0,1.0,0.5,2,0,3.552713678800501e-15,1.87641227073365e-15,0.06779269999969983,Referencia principal de control.
+Ackley,2,1. Base y azar,30,200,2.0,1.0,0.5,2,1,0.0,3.8645928269702684e-16,0.06761050000022806,Variabilidad por inicialización aleatoria.
+Ackley,3,1. Base y azar,30,200,2.0,1.0,0.5,2,2,3.552713678800501e-15,1.886349672287239e-15,0.0986931999996159,Variabilidad por inicialización aleatoria.
+Ackley,4,1. Base y azar,30,200,2.0,1.0,0.5,2,3,3.552713678800501e-15,1.8189364246567522e-15,0.1138409999985015,Variabilidad por inicialización aleatoria.
+Ackley,5,1. Base y azar,30,200,2.0,1.0,0.5,2,4,3.552713678800501e-15,1.6034559621545883e-15,0.07057189999977709,Variabilidad por inicialización aleatoria.
+Ackley,6,2. Población (N),5,200,2.0,1.0,0.5,2,0,7.105427357601002e-15,3.338196150309121e-15,0.012313700000959216,Población mínima (alto riesgo de estancamiento).
+Ackley,7,2. Población (N),15,200,2.0,1.0,0.5,2,0,3.552713678800501e-15,1.6832914215041585e-15,0.034169299999120994,Población pequeña (mitad de la base).
+Ackley,8,2. Población (N),50,200,2.0,1.0,0.5,2,0,3.552713678800501e-15,1.2501440606544927e-15,0.1099052000008669,Población media-alta.
+Ackley,9,2. Población (N),80,200,2.0,1.0,0.5,2,0,7.105427357601002e-15,3.4459714188870462e-15,0.1755051000000094,Población grande (mayor cobertura inicial).
+Ackley,10,2. Población (N),120,200,2.0,1.0,0.5,2,0,3.552713678800501e-15,1.6902220059449387e-15,0.2587089999997261,Población muy densa (punto de saturación).
+Ackley,11,3. Iteraciones,30,50,2.0,1.0,0.5,2,0,6.31781276183574e-08,2.233683630980174e-08,0.01671879999958037,Convergencia temprana con pocas vueltas.
+Ackley,12,3. Iteraciones,30,100,2.0,1.0,0.5,2,0,3.552713678800501e-15,1.4257921346754372e-15,0.03372060000037891,Mitad del presupuesto estándar.
+Ackley,13,3. Iteraciones,30,300,2.0,1.0,0.5,2,0,0.0,3.712618214633288e-16,0.10028400000010151,Refinamiento extendido.
+Ackley,14,3. Iteraciones,30,500,2.0,1.0,0.5,2,0,0.0,1.3481448171868967e-16,0.16557319999992615,Alta precisión de convergencia.
+Ackley,15,3. Iteraciones,30,1000,2.0,1.0,0.5,2,0,0.0,1.2301556747594207e-16,0.38577710000026855,Límite de estabilización asintótica.
+Ackley,16,4. Expl. / Explot.,30,200,0.5,1.0,0.5,2,0,7.105427357601002e-15,3.4035132129114633e-15,0.07386339999902702,Explotación pura (|A| < 1 desde el inicio).
+Ackley,17,4. Expl. / Explot.,30,200,1.0,1.0,0.5,2,0,3.552713678800501e-15,9.171189409335605e-16,0.10139489999892248,Umbral límite sin búsqueda aleatoria.
+Ackley,18,4. Expl. / Explot.,30,200,3.0,1.0,0.5,2,0,3.552713678800501e-15,1.807858346557846e-15,0.09326269999837677,Fase de exploración global prolongada.
+Ackley,19,4. Expl. / Explot.,30,200,2.0,1.0,0.2,2,0,7.105427357601002e-15,3.407139230290421e-15,0.1032863999989786,Predomina ataque en espiral (80% espiral).
+Ackley,20,4. Expl. / Explot.,30,200,2.0,1.0,0.8,2,0,7.105427357601002e-15,3.505597817309244e-15,0.06896280000000843,Predomina cerco y búsqueda (20% espiral).
+Ackley,21,5. Espiral y comb.,30,200,2.0,0.2,0.5,2,0,7.105427357601002e-15,3.0612120285341295e-15,0.08166909999999916,Espiral logarítmica muy cerrada/estrecha.
+Ackley,22,5. Espiral y comb.,30,200,2.0,2.5,0.5,2,0,0.0,2.398870195482661e-16,0.10087169999860635,Espiral logarítmica muy abierta/amplia.
+Ackley,23,5. Espiral y comb.,15,100,2.0,1.0,0.5,2,0,5.7056581681536045e-12,2.016865931072209e-12,0.027907199999390286,Escenario combinado ligero (bajo costo).
+Ackley,24,5. Espiral y comb.,60,400,2.5,1.0,0.5,2,0,0.0,2.3128292787628847e-16,0.37072819999957574,Escenario combinado intensivo (alta exploración).
+Ackley,25,5. Espiral y comb.,50,300,1.5,0.5,0.3,2,0,3.552713678800501e-15,1.785673909585893e-15,0.18722490000072867,Escalabilidad a d=30 (o ajuste fino en 2D*).
+Sphere,1,1. Base y azar,30,200,2.0,1.0,0.5,10,0,1.920075136231322e-31,4.3818661963041753e-16,0.08137790000000678,Referencia principal de control.
+Sphere,2,1. Base y azar,30,200,2.0,1.0,0.5,10,1,2.3812792783803746e-33,4.879835323430878e-17,0.08195849999901839,Variabilidad por inicialización aleatoria.
+Sphere,3,1. Base y azar,30,200,2.0,1.0,0.5,10,2,5.637372364341667e-33,7.50824371230827e-17,0.06317889999991166,Variabilidad por inicialización aleatoria.
+Sphere,4,1. Base y azar,30,200,2.0,1.0,0.5,10,3,3.505116421657475e-35,5.9204023694825634e-18,0.09108199999900535,Variabilidad por inicialización aleatoria.
+Sphere,5,1. Base y azar,30,200,2.0,1.0,0.5,10,4,2.7207652045979735e-30,1.649474220652743e-15,0.0886315999996441,Variabilidad por inicialización aleatoria.
+Sphere,6,2. Población (N),5,200,2.0,1.0,0.5,10,0,7.477766193995265e-14,2.734550455558512e-07,0.0150272999999288,Población mínima (alto riesgo de estancamiento).
+Sphere,7,2. Población (N),15,200,2.0,1.0,0.5,10,0,3.377537559270563e-27,5.811658592235578e-14,0.05931819999932486,Población pequeña (mitad de la base).
+Sphere,8,2. Población (N),50,200,2.0,1.0,0.5,10,0,1.901590512754207e-37,4.360723005138261e-19,0.12100459999965096,Población media-alta.
+Sphere,9,2. Población (N),80,200,2.0,1.0,0.5,10,0,6.956639504666556e-42,2.6375442185234653e-21,0.21773810000013327,Población grande (mayor cobertura inicial).
+Sphere,10,2. Población (N),120,200,2.0,1.0,0.5,10,0,4.630051983344746e-46,2.1517555584556408e-23,0.2566306999997323,Población muy densa (punto de saturación).
+Sphere,11,3. Iteraciones,30,50,2.0,1.0,0.5,10,0,6.919112783547855e-05,0.008318120450887843,0.015587100000630016,Convergencia temprana con pocas vueltas.
+Sphere,12,3. Iteraciones,30,100,2.0,1.0,0.5,10,0,2.428703594491858e-16,1.558429849076261e-08,0.03140669999993406,Mitad del presupuesto estándar.
+Sphere,13,3. Iteraciones,30,300,2.0,1.0,0.5,10,0,1.047655377316465e-55,3.2367504959704027e-28,0.09206919999996899,Refinamiento extendido.
+Sphere,14,3. Iteraciones,30,500,2.0,1.0,0.5,10,0,3.941332438551267e-91,6.2780032164305774e-46,0.15541269999994256,Alta precisión de convergencia.
+Sphere,15,3. Iteraciones,30,1000,2.0,1.0,0.5,10,0,1.4294092279225775e-185,3.78075287201184e-93,0.308018900001116,Límite de estabilización asintótica.
+Sphere,16,4. Expl. / Explot.,30,200,0.5,1.0,0.5,10,0,7.236776500849335e-25,8.506924532902202e-13,0.060914300000149524,Explotación pura (|A| < 1 desde el inicio).
+Sphere,17,4. Expl. / Explot.,30,200,1.0,1.0,0.5,10,0,7.49703577358336e-34,2.7380715428168346e-17,0.060500200001115445,Umbral límite sin búsqueda aleatoria.
+Sphere,18,4. Expl. / Explot.,30,200,3.0,1.0,0.5,10,0,5.666710221180107e-26,2.380485291107699e-13,0.06310950000079174,Fase de exploración global prolongada.
+Sphere,19,4. Expl. / Explot.,30,200,2.0,1.0,0.2,10,0,1.3120236133816467e-27,3.622186650880441e-14,0.07303550000142423,Predomina ataque en espiral (80% espiral).
+Sphere,20,4. Expl. / Explot.,30,200,2.0,1.0,0.8,10,0,1.9722736086923595e-33,4.4410287194436825e-17,0.05970109999907436,Predomina cerco y búsqueda (20% espiral).
+Sphere,21,5. Espiral y comb.,30,200,2.0,0.2,0.5,10,0,8.71218746106544e-37,9.333909931569642e-19,0.06207739999990736,Espiral logarítmica muy cerrada/estrecha.
+Sphere,22,5. Espiral y comb.,30,200,2.0,2.5,0.5,10,0,6.088417368984958e-32,2.4674718577898627e-16,0.062111599998388556,Espiral logarítmica muy abierta/amplia.
+Sphere,23,5. Espiral y comb.,15,100,2.0,1.0,0.5,10,0,1.2770699944986418e-11,3.5736116108198465e-06,0.0162345999997342,Escenario combinado ligero (bajo costo).
+Sphere,24,5. Espiral y comb.,60,400,2.5,1.0,0.5,10,0,8.683418569236116e-66,2.9467640844214382e-33,0.247036399998251,Escenario combinado intensivo (alta exploración).
+Sphere,25,5. Espiral y comb.,30,200,2.0,1.0,0.5,30,0,2.1545637005610248e-33,4.6417278039120566e-17,0.06316049999986717,Escalabilidad a d=30 (o ajuste fino en 2D*).
+Rosenbrock,1,1. Base y azar,30,200,2.0,1.0,0.5,10,0,6.151100776982604,0.1970316912290126,0.09049919999961276,Referencia principal de control.
+Rosenbrock,2,1. Base y azar,30,200,2.0,1.0,0.5,10,1,8.571379732219741,3.0606247166922715,0.08315810000021884,Variabilidad por inicialización aleatoria.
+Rosenbrock,3,1. Base y azar,30,200,2.0,1.0,0.5,10,2,0.1657530702954818,0.01705364050421902,0.0832631000012043,Variabilidad por inicialización aleatoria.
+Rosenbrock,4,1. Base y azar,30,200,2.0,1.0,0.5,10,3,8.89887257058437,3.1263783787574364,0.08335009999973408,Variabilidad por inicialización aleatoria.
+Rosenbrock,5,1. Base y azar,30,200,2.0,1.0,0.5,10,4,0.15485751279401055,0.02331512097741692,0.08329840000078548,Variabilidad por inicialización aleatoria.
+Rosenbrock,6,2. Población (N),5,200,2.0,1.0,0.5,10,0,8.934829631650473,3.1379114255408287,0.015374999999039574,Población mínima (alto riesgo de estancamiento).
+Rosenbrock,7,2. Población (N),15,200,2.0,1.0,0.5,10,0,1.421708008882397,0.05714827798604263,0.04253029999927094,Población pequeña (mitad de la base).
+Rosenbrock,8,2. Población (N),50,200,2.0,1.0,0.5,10,0,0.42430196838849066,0.04035178804169316,0.13966709999840532,Población media-alta.
+Rosenbrock,9,2. Población (N),80,200,2.0,1.0,0.5,10,0,7.972029371188505,2.9471360812484835,0.22147100000074715,Población grande (mayor cobertura inicial).
+Rosenbrock,10,2. Población (N),120,200,2.0,1.0,0.5,10,0,0.031184729494289916,0.007006982190703477,0.32745250000152737,Población muy densa (punto de saturación).
+Rosenbrock,11,3. Iteraciones,30,50,2.0,1.0,0.5,10,0,8.726601739883806,3.0767692527229693,0.02128449999872828,Convergencia temprana con pocas vueltas.
+Rosenbrock,12,3. Iteraciones,30,100,2.0,1.0,0.5,10,0,8.898760398820137,3.1291959837032968,0.042528300000412855,Mitad del presupuesto estándar.
+Rosenbrock,13,3. Iteraciones,30,300,2.0,1.0,0.5,10,0,8.631204482475505,3.067037669760211,0.12588219999997818,Refinamiento extendido.
+Rosenbrock,14,3. Iteraciones,30,500,2.0,1.0,0.5,10,0,0.7749255928701035,0.05138622129898204,0.21130579999953625,Alta precisión de convergencia.
+Rosenbrock,15,3. Iteraciones,30,1000,2.0,1.0,0.5,10,0,0.18307039948865508,0.05108456833336363,0.4206233999993856,Límite de estabilización asintótica.
+Rosenbrock,16,4. Expl. / Explot.,30,200,0.5,1.0,0.5,10,0,8.716898086250318,3.08411949415875,0.13472270000056596,Explotación pura (|A| < 1 desde el inicio).
+Rosenbrock,17,4. Expl. / Explot.,30,200,1.0,1.0,0.5,10,0,8.930007577976074,3.140039066084079,0.09188979999998992,Umbral límite sin búsqueda aleatoria.
+Rosenbrock,18,4. Expl. / Explot.,30,200,3.0,1.0,0.5,10,0,0.08777861547294633,0.011847400760839578,0.08607910000137053,Fase de exploración global prolongada.
+Rosenbrock,19,4. Expl. / Explot.,30,200,2.0,1.0,0.2,10,0,8.894919960398152,3.1269758171960085,0.08517570000003616,Predomina ataque en espiral (80% espiral).
+Rosenbrock,20,4. Expl. / Explot.,30,200,2.0,1.0,0.8,10,0,8.89823922191675,3.1269700868167654,0.08192330000019865,Predomina cerco y búsqueda (20% espiral).
+Rosenbrock,21,5. Espiral y comb.,30,200,2.0,0.2,0.5,10,0,8.895831081677713,3.1279285789383264,0.0831992999992508,Espiral logarítmica muy cerrada/estrecha.
+Rosenbrock,22,5. Espiral y comb.,30,200,2.0,2.5,0.5,10,0,0.07089176704504904,0.02499688925923724,0.08338840000033088,Espiral logarítmica muy abierta/amplia.
+Rosenbrock,23,5. Espiral y comb.,15,100,2.0,1.0,0.5,10,0,8.919419310463281,3.1347517357272685,0.021638300000631716,Escenario combinado ligero (bajo costo).
+Rosenbrock,24,5. Espiral y comb.,60,400,2.5,1.0,0.5,10,0,0.025183937843850444,0.006718884880948726,0.33377629999995406,Escenario combinado intensivo (alta exploración).
+Rosenbrock,25,5. Espiral y comb.,30,200,2.0,1.0,0.5,30,0,28.704048193745844,5.421506285736367,0.08523889999923995,Escalabilidad a d=30 (o ajuste fino en 2D*).
+Beale,1,1. Base y azar,30,200,2.0,1.0,0.5,2,0,1.1161864831715919e-08,0.00019626094760175655,0.047996299999795156,Referencia principal de control.
+Beale,2,1. Base y azar,30,200,2.0,1.0,0.5,2,1,1.4827465998135387e-08,0.0002349046869620992,0.04784329999893089,Variabilidad por inicialización aleatoria.
+Beale,3,1. Base y azar,30,200,2.0,1.0,0.5,2,2,0.7620696508925582,7.531346817171029,0.04779879999841796,Variabilidad por inicialización aleatoria.
+Beale,4,1. Base y azar,30,200,2.0,1.0,0.5,2,3,5.464703920204212e-10,4.1546543638946575e-05,0.047839300001214724,Variabilidad por inicialización aleatoria.
+Beale,5,1. Base y azar,30,200,2.0,1.0,0.5,2,4,6.912916873224988e-08,0.0004825420353191526,0.04927759999918635,Variabilidad por inicialización aleatoria.
+Beale,6,2. Población (N),5,200,2.0,1.0,0.5,2,0,7.3931189783766565e-06,0.005099835081989903,0.008966999999756808,Población mínima (alto riesgo de estancamiento).
+Beale,7,2. Población (N),15,200,2.0,1.0,0.5,2,0,5.6832646230740025e-09,0.00014612784864443388,0.024459500000375556,Población pequeña (mitad de la base).
+Beale,8,2. Población (N),50,200,2.0,1.0,0.5,2,0,3.357574805248888e-11,1.0755524802511387e-05,0.07808010000007926,Población media-alta.
+Beale,9,2. Población (N),80,200,2.0,1.0,0.5,2,0,3.495816808326829e-10,3.3023926099544246e-05,0.12478980000014417,Población grande (mayor cobertura inicial).
+Beale,10,2. Población (N),120,200,2.0,1.0,0.5,2,0,5.925041516873725e-12,4.430793129146723e-06,0.18696520000048622,Población muy densa (punto de saturación).
+Beale,11,3. Iteraciones,30,50,2.0,1.0,0.5,2,0,1.5414869946058962e-06,0.002282269711002408,0.01193289999901026,Convergencia temprana con pocas vueltas.
+Beale,12,3. Iteraciones,30,100,2.0,1.0,0.5,2,0,2.5742932012840296e-09,0.00010882978297312135,0.02393819999997504,Mitad del presupuesto estándar.
+Beale,13,3. Iteraciones,30,300,2.0,1.0,0.5,2,0,6.931212752094286e-10,4.388969521143184e-05,0.07217270000001008,Refinamiento extendido.
+Beale,14,3. Iteraciones,30,500,2.0,1.0,0.5,2,0,2.6868594375616195e-11,9.757074855890036e-06,0.1435745999988285,Alta precisión de convergencia.
+Beale,15,3. Iteraciones,30,1000,2.0,1.0,0.5,2,0,6.256969932299703e-11,1.4687369109352939e-05,0.2647680999998556,Límite de estabilización asintótica.
+Beale,16,4. Expl. / Explot.,30,200,0.5,1.0,0.5,2,0,9.464567521515865e-08,0.0005662054916502243,0.046291099999507423,Explotación pura (|A| < 1 desde el inicio).
+Beale,17,4. Expl. / Explot.,30,200,1.0,1.0,0.5,2,0,2.3469820006802115e-08,0.00028199881503010584,0.046157400000083726,Umbral límite sin búsqueda aleatoria.
+Beale,18,4. Expl. / Explot.,30,200,3.0,1.0,0.5,2,0,3.700845566046488e-10,3.984357985987364e-05,0.048767899999802466,Fase de exploración global prolongada.
+Beale,19,4. Expl. / Explot.,30,200,2.0,1.0,0.2,2,0,7.8553401875219e-13,1.6351211918017882e-06,0.052034399999683956,Predomina ataque en espiral (80% espiral).
+Beale,20,4. Expl. / Explot.,30,200,2.0,1.0,0.8,2,0,1.7878866402645948e-07,0.0007853849168451703,0.047246699999959674,Predomina cerco y búsqueda (20% espiral).
+Beale,21,5. Espiral y comb.,30,200,2.0,0.2,0.5,2,0,8.40000246838918e-10,5.2921134074513844e-05,0.05023769999934302,Espiral logarítmica muy cerrada/estrecha.
+Beale,22,5. Espiral y comb.,30,200,2.0,2.5,0.5,2,0,1.0024001246637044e-13,6.268071424473889e-07,0.04905300000064017,Espiral logarítmica muy abierta/amplia.
+Beale,23,5. Espiral y comb.,15,100,2.0,1.0,0.5,2,0,6.316685924914348e-07,0.0014588978588673284,0.012432899999112124,Escenario combinado ligero (bajo costo).
+Beale,24,5. Espiral y comb.,60,400,2.5,1.0,0.5,2,0,1.654763892146543e-09,7.484234987526357e-05,0.3158329000016238,Escenario combinado intensivo (alta exploración).
+Beale,25,5. Espiral y comb.,50,300,1.5,0.5,0.3,2,0,6.9852404483250675e-09,0.00015380751028899376,0.15222089999952004,Escalabilidad a d=30 (o ajuste fino en 2D*).
