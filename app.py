@@ -40,6 +40,21 @@ div[data-testid="stTabs"] div[data-testid="stTabs"] [data-testid="stTab"] p {
     font-size: 0.92rem; font-weight: 500; }
 div[data-testid="stTabs"] div[data-testid="stTabs"]
         .react-aria-SelectionIndicator { display: none; }
+/* Barra lateral: botones nativos de ocultar/mostrar siempre visibles y con
+   texto (Streamlit solo los muestra al pasar el mouse y sin letrero). */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapseButton"] button {
+    display: inline-flex !important; visibility: visible !important;
+    opacity: 1 !important; }
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="stExpandSidebarButton"] {
+    width: auto !important; gap: 0.3rem; padding: 0.25rem 0.7rem !important;
+    border-radius: 999px !important; border: 1px solid #ff9f9f !important;
+    background: rgba(255, 75, 75, 0.12) !important; }
+[data-testid="stSidebarCollapseButton"] button::after {
+    content: "Ocultar ajustes"; font-size: 0.85rem; font-weight: 600; }
+[data-testid="stExpandSidebarButton"]::after {
+    content: "Mostrar ajustes"; font-size: 0.85rem; font-weight: 600; }
 .woa-cargando {
     position: relative; overflow: hidden;
     display: flex; align-items: center; gap: 1rem;
@@ -457,7 +472,9 @@ La app tiene **5 secciones** (arriba). Ve en este orden:
 | **4. Reporte** | La guía para escribir el reporte | |
 
 Los ajustes de la **barra izquierda** se usan en *Ver el algoritmo* y
-*Probar tú*. Pasa el mouse sobre el ⓘ de cada uno para ver qué hace.
+*Probar tú*. Pasa el mouse sobre el ⓘ de cada uno para ver qué hace. Si te
+estorba, escóndela con **« Ocultar ajustes** (arriba de la barra) y vuelve a
+abrirla con **» Mostrar ajustes**.
 """)
 
     st.markdown("#### Palabras que vas a ver")
