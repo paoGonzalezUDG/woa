@@ -355,6 +355,19 @@ def test_pestana_todas_las_cajas(app, ver, puntos):
     assert len(cajas_fig) == n_func * 17          # 4+4+3+3+3 valores
     defecto = [t for t in cajas_fig if "por defecto" in t["name"]]
     assert len(defecto) == n_func * 5
+    # con una sola funcion aparece su explicacion
+    propio = {"Rastrigin": "casi todo queda en 0",
+              "Ackley": "todas las cajas están pegadas abajo",
+              "Sphere": "qué tan fino afina",
+              "Rosenbrock": "la fila más interesante",
+              "Beale": "Ningún ajuste las quita"}
+    infos = _textos(at.info)
+    for f, frase in propio.items():
+        visible = any(frase in t for t in infos)
+        assert visible == (f == ver), (f, ver)
+    titulos = [e.label for e in at.expander]
+    assert "¿Qué dice cada fila?" in titulos
+    assert "¿Qué se concluye de toda la gráfica?" in titulos
 
 
 def test_tablas_explican_sus_columnas(app):

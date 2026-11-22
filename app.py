@@ -1077,6 +1077,61 @@ def zip_resultados(firma):
 
 ARCHIVO_CAJAS = os.path.join(CARPETA_RES, "7_panorama", "finales.csv")
 
+# Lectura de cada fila de "Todas las cajas" (numeros de resultados/; si se
+# regeneran con otro codigo, revisar estos textos)
+LECTURA_CAJAS = {
+    "Rastrigin": """
+**Rastrigin (cartón de huevo): casi todo queda en 0.** Las excepciones:
+- **Vueltas = 50:** la caja es muy alta (mediana 0.000057, peor 60): no le
+  alcanzan las vueltas.
+- **a = 1** y **p = 0.2:** aparecen puntitos arriba (peor 25.4 y 33.1):
+  algunas corridas se atoran en un hoyito, porque casi no exploran.
+- **b:** no cambia nada.
+""",
+    "Ackley": """
+**Ackley: todas las cajas están pegadas abajo** (alrededor de 4e-15, o sea,
+casi 0), menos **vueltas = 50** (1.6e-8). Es fácil para el algoritmo y casi
+ningún ajuste importa.
+""",
+    "Sphere": """
+**Sphere (tazón): todo llega casi a 0**, pero se ve **qué tan fino afina**:
+- **Vueltas** es lo que más mueve: de 4.6e-6 con 50 a 1.4e-89 con 500.
+- **Más ballenas** también ayuda: de 8e-24 con 10 a 7e-45 con 100.
+- **a = 3** es peor (4.7e-26): gasta vueltas explorando un tazón que no
+  tiene trampas.
+- **b:** no cambia nada.
+""",
+    "Rosenbrock": """
+**Rosenbrock (valle del plátano): la fila más interesante.**
+- **La caja de la franja azul es altísima** (de ~0.1 a ~9): 17 de las 30
+  corridas se atoran en el centro, donde la función vale 9 (ver la sección
+  4.4 del reporte).
+- **Bajan mucho la caja:** a = 3 (mediana 0.09), 100 ballenas (0.12),
+  p = 0.8 (0.26), 500 vueltas (0.40) y b = 2 (0.66).
+- **Es la única función donde casi todos los ajustes importan.**
+""",
+    "Beale": """
+**Beale (valles angostos):**
+- Las cajas bajan con más ballenas, más vueltas y sobre todo con
+  **p = 0.2** (mediana 7e-13 contra 9e-9 por defecto).
+- En **todas** las columnas hay **puntitos arriba (~0.76)**: entre 2 y 7
+  corridas de 30 se atoran en un mínimo local. **Ningún ajuste las quita.**
+  Por eso el promedio de Beale sale malo aunque la mediana sea casi 0.
+""",
+}
+CONCLUSION_CAJAS = """
+1. **Vueltas** es el ajuste que más mueve las cajas en casi todas las
+   funciones.
+2. **b** casi no hace nada (solo un poco en Rosenbrock).
+3. **No hay un valor que sea el mejor en todas:** a = 3 ayuda en Rosenbrock
+   pero empeora Sphere; p = 0.2 ayuda en Beale pero atora a Rastrigin.
+4. **Rosenbrock y Beale son las difíciles**, cada una por algo distinto:
+   Rosenbrock por el centro y Beale por un mínimo local.
+
+Para el reporte, esta figura (`resultados/7_panorama/cajas.png`) puede
+sustituir las 9 gráficas sueltas de la sección 4.2.
+"""
+
 
 @st.cache_data(show_spinner=False)
 def datos_cajas(firma):
@@ -1110,21 +1165,45 @@ with tab_cajas:
             cajas.figura_cajas(df_cajas, funcs_cajas, PARAMS_DEFAULT,
                                puntos_cajas),
             width="stretch", key="cajas_fig", theme=None)
+        if ver_cajas != "Todas":          # una sola funcion: su lectura
+            st.info(LECTURA_CAJAS[ver_cajas])
         with st.expander("¿Cómo leo esta gráfica?"):
             st.markdown("""
+**Qué es:** cada **fila** es una función y cada **columna** un ajuste.
+Dentro de cada cuadrito hay una caja por cada valor probado (por ejemplo,
+en *Ballenas*: 10, 30, 50 y 100). Cada caja son **30 corridas** con ese
+valor; **solo cambia ese ajuste**, lo demás se queda en su valor por
+defecto.
+
+**Cómo leer una caja:**
+```
+   •        ← corrida rara (mucho peor o mejor que las demás)
+   ┬        ← bigote: hasta dónde llegan las corridas "normales"
+ ┌───┐
+ │---│      ← línea punteada: el promedio
+ │───│      ← raya sólida: la mediana (la corrida típica)
+ └───┘      ← la caja guarda la mitad de las corridas (las 15 de en medio)
+   ┴
+```
 - **Más abajo = mejor** (más cerca del mínimo, que es 0).
-- **Franja azul:** el valor por defecto. Compara las otras cajas contra
-  ella para ver si ese ajuste ayuda o estorba.
-- **Caja:** guarda la mitad de las corridas. La raya de en medio es la
-  mediana y la raya punteada el promedio. Caja alta = corridas muy distintas
-  entre sí.
-- **Puntitos sueltos:** corridas raras (mucho mejores o peores que las demás).
-- **Escala logarítmica:** cada raya es 10 veces más chica que la anterior.
-  Todas las gráficas de una fila usan la misma escala, así que se pueden
-  comparar los ajustes entre sí.
-- **0 en el eje:** la línea punteada gris de abajo. Ahí se dibujan las
-  corridas que llegaron exactamente al mínimo.
+- **Caja alta** = corridas muy distintas entre sí (poco confiable).
+  **Caja aplastada** = las 30 dieron casi lo mismo.
+- **Franja azul** = el valor por defecto: compara las otras cajas contra
+  ella para ver si ese valor ayuda o estorba.
+- **0 en el eje** (línea punteada gris de abajo): ahí quedan las corridas
+  que llegaron exactamente al mínimo.
+- **Escala logarítmica:** cada marca del eje es **10 veces** más chica que
+  la de arriba; bajar una marca = mejorar 10 veces.
+
+**Cómo comparar:** las 5 gráficas de una fila usan la misma escala. **El
+ajuste cuyas cajas se mueven más es el que más importa** en esa función; si
+quedan a la misma altura, casi no importa.
 """)
+        with st.expander("¿Qué dice cada fila?"):
+            for nom_l in FUNCIONES:
+                st.markdown(LECTURA_CAJAS[nom_l])
+        with st.expander("¿Qué se concluye de toda la gráfica?"):
+            st.markdown(CONCLUSION_CAJAS)
         st.caption("La versión en imagen para el reporte está en "
                    "`resultados/7_panorama/cajas.png`.")
 
