@@ -117,7 +117,10 @@ def tabla_funciones():
             x = f"{_g(c['optimo_x'](n)[0])}, …, {_g(c['optimo_x'](n)[0])}"
         zona = f"{_g(c['lb'])} a {_g(c['ub'])}"
         filas.append({"#": i, "Función": nom,
-                      "Variables": n if c["dim"] is None else f"{n} (fijo)",
+                      # todo texto: si se mezclan numeros y texto en una
+                      # columna, Streamlit/pyarrow imprime un Traceback
+                      "Variables": str(n) if c["dim"] is None
+                      else f"{n} (fijo)",
                       "Zona de búsqueda": zona + (" *" if nom in ZONA_ELEGIDA
                                                   else ""),
                       "Mínimo": f"{_g(c['optimo_f'])} en ({x})"})
