@@ -45,7 +45,9 @@ def test_regenerar_experimentos_da_los_mismos_numeros(tmp_path):
             if a[col].dtype == object:
                 assert list(a[col]) == list(b[col]), (rel, col)
             else:
-                assert np.allclose(a[col], b[col], rtol=1e-9, atol=0), (rel, col)
+                # equal_nan: celdas vacias (ej. rosenbrock.csv) en los dos
+                assert np.allclose(a[col], b[col], rtol=1e-9, atol=0,
+                                   equal_nan=True), (rel, col)
     pngs = [os.path.join(r, x) for r, _, xs in os.walk(nuevos) for x in xs
             if x.endswith(".png")]
     assert len(pngs) == 34
