@@ -102,7 +102,7 @@ def tabla_base():
         ("Umbral de p", _g(PARAMS_DEFAULT["p_umbral"]), "Valor del artículo"),
         ("Corridas por configuración", str(N_CORRIDAS),
          f"En los barridos (Tabla 5): semillas {_semillas(N_CORRIDAS)}, las "
-         "mismas en todas. En la Tabla 3 es 1 corrida por fila, con la "
+         "mismas en todas. En la Tabla 1 es 1 corrida por fila, con la "
          "semilla indicada"),
     ]
     return pd.DataFrame(filas, columns=["Ajuste", "Valor", "Nota"])
@@ -273,7 +273,7 @@ def notas():
     nf = len(FUNCIONES)
     distintas = len(tabla_barridos())
     return [
-        f"**Tabla 3:** {len(TABLA_25)} ejecuciones por función, **una sola "
+        f"**Tabla 1:** {len(TABLA_25)} ejecuciones por función, **una sola "
         f"corrida cada una** con la semilla indicada: {_miles(t['tabla_25'])} "
         f"corridas en las {nf} funciones (`{CARPETA_TABLA_25}/`). Con una "
         "sola corrida pesa mucho el azar: por ejemplo, en Beale la fila 3 "
@@ -286,19 +286,19 @@ def notas():
         "CSV de cada función la base aparece otra vez dentro de cada barrido "
         "(con las mismas semillas sale idéntica); por eso `finales.csv` "
         f"tiene {_miles(t['barridos'])} filas.",
-        f"**Total ejecutado:** {_miles(t['tabla_25'])} (Tabla 3) + "
+        f"**Total ejecutado:** {_miles(t['tabla_25'])} (Tabla 1) + "
         f"{_miles(t['base'])} (base) + {_miles(t['barridos'])} (barridos) + "
         f"{_miles(t['combinaciones'])} (combinaciones) + "
         f"{_miles(t['sesgo'])} (sesgo) + {_miles(t['rosenbrock'])} "
         f"(Rosenbrock) = **{_miles(t['total'])} corridas**. Algunas se "
-        "repiten: las filas de la Tabla 3 con la misma configuración y "
+        "repiten: las filas de la Tabla 1 con la misma configuración y "
         "semilla que un barrido dan exactamente lo mismo.",
         "Mueven varios ajustes a la vez: las filas 23, 24 y 25 de la Tabla "
-        "3, las combinaciones y la mejor combinación de Rosenbrock. En todo "
+        "1, las combinaciones y la mejor combinación de Rosenbrock. En todo "
         "lo demás cambia un solo ajuste.",
         nota_fila_25(),
         "Sphere y Rosenbrock no tienen límite en Wikipedia: la zona de "
-        "búsqueda (marcada con \\* en la Tabla 2) la elegimos nosotras.",
+        "búsqueda (marcada con \\* en la Tabla 4) la elegimos nosotras.",
     ]
 
 
@@ -338,8 +338,8 @@ def html_diseno():
         res = tabla_25_resultados(pd.read_csv(CSV_TABLA_25))
         for c in FUNCIONES:
             res[c] = res[c].map(_corto)
-        res_html = (f"<h2>Tabla 4. Mejor valor de cada ejecución de la "
-                    f"Tabla 3 (1 corrida)</h2>{_tabla_html(res)}")
+        res_html = (f"<h2>Tabla 2. Mejor valor de cada ejecución de la "
+                    f"Tabla 1 (1 corrida)</h2>{_tabla_html(res)}")
     else:
         res_html = ""
     return f"""<!doctype html>
@@ -367,17 +367,17 @@ code {{ font-family: Consolas, monospace; font-size: 9pt; }}
 <h1>Diseño experimental</h1>
 <p class="sub">WOA sobre las 5 primeras funciones de Wikipedia. Generado desde
 el código del proyecto (<code>experimentos.py</code>).</p>
-<h2>Tabla 1. Valores por defecto (configuración base)</h2>
-{_tabla_html(tabla_base())}
-<h2>Tabla 2. Funciones de prueba</h2>
-{_tabla_html(tabla_funciones())}
-<h2>Tabla 3. Diseño experimental de {len(TABLA_25)} ejecuciones por función
+<h2>Tabla 1. Diseño experimental de {len(TABLA_25)} ejecuciones por función
 matemática</h2>
 <p class="aviso">Una corrida por fila. En azul, lo que cambia respecto a la
 base. Variables: {_dims()} = las funciones de n variables / Ackley y Beale.
 {_negritas(nota_fila_25())}</p>
 {_tabla_html(t25, cambia25)}
 {res_html}
+<h2>Tabla 3. Valores por defecto (configuración base)</h2>
+{_tabla_html(tabla_base())}
+<h2>Tabla 4. Funciones de prueba</h2>
+{_tabla_html(tabla_funciones())}
 <h2>Tabla 5. Barridos con {N_CORRIDAS} corridas por valor (los que usan las
 gráficas; igual en las {nf} funciones)</h2>
 {_tabla_html(barr, cambia)}

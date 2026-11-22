@@ -84,9 +84,30 @@ def tabla_sesgo(res=RES):
                    "Desv. est.", "Mejor", "Peor"], filas)
 
 
+def tabla_25(res=RES):
+    """Tabla 1 del reporte (25 ejecuciones, 1 corrida cada una) con el mejor
+    valor de cada funcion. Los ajustes son los de las funciones de n
+    variables; la fila 25 (*) es distinta en Ackley y Beale."""
+    df = pd.read_csv(os.path.join(res, "9_tabla_25", "corridas.csv"))
+    n_var = df[df.funcion == "Rastrigin"].set_index("ejecucion")
+    filas = []
+    for k, r in n_var.iterrows():
+        dims = f"{int(r.dim)} / 2" + ("*" if k == 25 else "")
+        fila = [str(k), r.bloque, str(int(r.n_ballenas)),
+                str(int(r.max_iter)), f"{r.a_inicial:g}", f"{r.b:g}",
+                f"{r.p_umbral:g}", dims, str(int(r.seed))]
+        for nom in FUNCIONES_ORDEN:
+            fila.append(fmt(df[(df.funcion == nom)
+                               & (df.ejecucion == k)].mejor_f.iloc[0]))
+        filas.append(fila)
+    return _tabla(["#", "Bloque", "Ballenas", "Vueltas", "a", "b", "p",
+                   "Variables", "Semilla"] + FUNCIONES_ORDEN, filas)
+
+
 def bloques(res=RES):
     """ID del bloque -> tabla en markdown."""
-    b = {"anexo_base": tabla_base(res), "anexo_sesgo": tabla_sesgo(res)}
+    b = {"anexo_base": tabla_base(res), "anexo_sesgo": tabla_sesgo(res),
+         "anexo_tabla25": tabla_25(res)}
     for num, nom in enumerate(FUNCIONES_ORDEN, start=1):
         b[f"anexo_{nom.lower()}"] = tabla_funcion(num, nom, res)
     return b
@@ -116,6 +137,12 @@ def actualizar_texto(texto, res=RES):
 B, S, C = "0_base/resumen.csv", "6_sesgo_centro/resumen.csv", \
     "8_combinaciones/resumen.csv"
 ROS = "6_sesgo_centro/rosenbrock.csv"
+T25 = "9_tabla_25/corridas.csv"
+
+
+def _t25(f, k, escrito):
+    """Mejor valor de la ejecucion k (Tabla 1, 1 corrida) en la funcion f."""
+    return (T25, {"funcion": f, "ejecucion": k}, "mejor_f", escrito)
 
 
 def _base(f, col, escrito):
@@ -211,7 +238,23 @@ NUMEROS = [
     _combo("Beale", *D, "lugar", "38"),
     _combo("Rastrigin", 60, 1.0, 0.5, 0.2, "mediana", "32.8"),
     _combo("Rastrigin", 10, 1.0, 0.5, 0.2, "mediana", "15"),
+] + [
+    # Tabla 1: 25 ejecuciones, 1 corrida cada una (seccion 4.7)
+    _t25("Rastrigin", 16, "51.8"), _t25("Rastrigin", 11, "6.1e-6"),
+    _t25("Ackley", 11, "6.3e-8"), _t25("Ackley", 23, "5.7e-12"),
+    _t25("Sphere", 11, "6.9e-5"), _t25("Sphere", 15, "1.4e-185"),
+    _t25("Sphere", 23, "1.3e-11"), _t25("Sphere", 25, "2.2e-33"),
+    _t25("Rosenbrock", 1, "6.15"), _t25("Rosenbrock", 2, "8.57"),
+    _t25("Rosenbrock", 3, "0.17"), _t25("Rosenbrock", 4, "8.90"),
+    _t25("Rosenbrock", 5, "0.15"),
+    _t25("Rosenbrock", 18, "0.088"), _t25("Rosenbrock", 22, "0.071"),
+    _t25("Rosenbrock", 24, "0.025"), _t25("Rosenbrock", 25, "28.7"),
+    _t25("Beale", 3, "0.76"),
 ]
+
+# Conteos de la seccion 4.7 (los revisa test_resultados)
+CONTEOS_T25 = {"rastrigin_ceros": 21, "rosenbrock_arriba_7.5": 14,
+               "rosenbrock_abajo_0.5": 8}
 
 # Lugares promedio de la seccion 4.6 (figura mapa.png):
 # (funcion, grupo, valor, lugar escrito)

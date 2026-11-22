@@ -5,7 +5,8 @@
 > palabras sencillas. **No es para entregarse tal cual**: el profe evalúa el
 > escrito, así que úsenlo para entender y luego escriban el reporte con sus
 > propias palabras y en un tono más formal. Los números salen de la carpeta
-> `resultados/` (30 corridas por configuración).
+> `resultados/` (30 corridas por configuración, salvo la Tabla 1 de 25
+> ejecuciones, que es 1 corrida por fila).
 
 Secciones que pide el profe: **Portada · Introducción · Desarrollo ·
 Experimentación · Resultados · Conclusiones · Bibliografía**. Él dijo que lo
@@ -225,14 +226,46 @@ Hay que decirlas en el reporte porque no vienen dadas por la teoría:
 
 ## 3. Experimentación
 
-### ¿Por qué repetir cada prueba 30 veces?
+### El diseño: 25 ejecuciones por función (Tabla 1)
+
+Es la tabla que armó Diana. Son **25 ejecuciones por cada una de las 5
+funciones (125 en total)**, y cada ejecución es **una sola corrida** con la
+semilla indicada. Están organizadas en 5 bloques:
+
+| Bloque | Ejecuciones | Qué cambia (lo demás queda en la base) |
+|---|---|---|
+| 1. Base y azar | 1 a 5 | Nada: la base con las semillas 0, 1, 2, 3 y 4 |
+| 2. Población (N) | 6 a 10 | Ballenas: 5, 15, 50, 80, 120 |
+| 3. Iteraciones | 11 a 15 | Vueltas: 50, 100, 300, 500, 1000 |
+| 4. Expl. / Explot. | 16 a 20 | `a` inicial: 0.5, 1, 3; umbral de `p`: 0.2, 0.8 |
+| 5. Espiral y comb. | 21 a 25 | `b`: 0.2, 2.5; 15 ballenas × 100 vueltas; 60 × 400 con `a` = 2.5; 30 variables |
+
+La base es 30 ballenas, 200 vueltas, `a` = 2, `b` = 1, `p` = 0.5, con 10
+variables (Rastrigin, Sphere y Rosenbrock) o 2 (Ackley y Beale), y semilla
+0. En la ejecución 25, Rastrigin, Sphere y Rosenbrock pasan a 30 variables.
+Ackley y Beale solo existen con 2, así que ahí usan un ajuste fino: 50
+ballenas, 300 vueltas, `a` = 1.5, `b` = 0.5 y `p` = 0.3.
+
+Ojo con dos cosas al escribirlo: las ejecuciones 23, 24 y 25 mueven **varios
+ajustes a la vez** (no es "un parámetro a la vez"), y las 200 vueltas no son
+el valor del artículo (ver 2.3). La tabla completa con el resultado de cada
+ejecución está en el **Anexo A.8** y en la app (*Resultados › Diseño del
+experimento*, que también la descarga en PDF). Los datos quedan en
+`resultados/9_tabla_25/`.
+
+### ¿Por qué además repetir 30 veces?
 
 WOA usa números al azar, así que **cada corrida da un resultado distinto**.
-Una sola corrida podría salir muy bien o muy mal por suerte. Por eso cada
-configuración se corrió **30 veces** y reportamos el resumen. Cada corrida
-usa una "semilla" fija (la corrida 1 usa la semilla 0, la 2 la semilla 1,
-etc.), así que cualquiera puede repetir el experimento y obtener exactamente
-los mismos números.
+Una sola corrida podría salir muy bien o muy mal por suerte, y la Tabla 1 lo
+muestra: en Beale, las ejecuciones 1 a 5 son la misma configuración y solo
+cambia la semilla, pero la 3 se atora en 0.76 y las demás llegan casi a 0.
+Por eso, para **comparar ajustes**, cada valor también se corrió **30
+veces** y reportamos el resumen (son los barridos de abajo y todas las
+gráficas de la sección 4). Cada corrida usa una "semilla" fija (la corrida 1
+usa la semilla 0, la 2 la semilla 1, etc.), así que cualquiera puede repetir
+el experimento y obtener exactamente los mismos números. Las ejecuciones de
+la Tabla 1 que coinciden con un barrido (misma configuración y semilla) dan
+exactamente lo mismo.
 
 ### ¿Qué medimos?
 
@@ -244,9 +277,10 @@ El **error**: qué tan lejos quedó el mejor valor encontrado del mínimo real
 - **Desviación estándar**: qué tan distintas fueron las corridas entre sí.
 - **Mejor y peor** corrida.
 
-### ¿Qué parámetros variamos?
+### Barridos con 30 corridas: ¿qué parámetros variamos?
 
-Cambiamos **un parámetro a la vez** y dejamos los demás igual. Así, si el
+En los barridos cambiamos **un parámetro a la vez** y dejamos los demás
+igual. Así, si el
 resultado cambia, sabemos que fue por ese parámetro y no por otro.
 
 | Parámetro | Qué controla | Valores probados |
@@ -257,8 +291,9 @@ resultado cambia, sabemos que fue por ese parámetro y no por otro.
 | `b` | Qué tan abierta es la espiral | 0.5, 1, 2 |
 | Umbral de `p` | Qué tan seguido usan rodear/buscar vs. espiral | 0.2, 0.5, 0.8 |
 
-Eso da 5 funciones × 5 parámetros = **25 experimentos**, más el experimento
-base con los valores por defecto.
+Eso da 5 funciones × 5 parámetros = **25 barridos** (son las 25 cajas del
+Anexo B; no confundir con las 25 ejecuciones de la Tabla 1), más el
+experimento base con los valores por defecto.
 
 ### Experimento extra: varios parámetros a la vez
 
@@ -713,9 +748,52 @@ números son el lugar que saca en cada función (de 81).*
 - **Conexión con la teoría:** es justo la idea de que ningún método (ni
   ninguna configuración) es el mejor para todos los problemas (Wolpert y
   Macready, 1997; ver bibliografía opcional).
-- **Dato para la conclusión:** la de por defecto (la del artículo) nunca
+- **Dato para la conclusión:** la de por defecto nunca
   queda entre las 20 mejores, pero tampoco es mala en ninguna: es un
   **término medio** razonable cuando no se sabe cómo es el terreno.
+
+### 4.7 Las 25 ejecuciones de la Tabla 1
+
+![Figura 17](../resultados/9_tabla_25/resultados.png)
+
+*Figura 17. El mejor valor de cada ejecución de la Tabla 1 (una corrida por
+casilla). Verde = casi 0; rojo = lejos del mínimo. La tabla con los números
+está en el Anexo A.8.*
+
+**Qué se ve, función por función:**
+
+- **Rastrigin:** 21 de 25 ejecuciones llegan a 0 exacto. Las que fallan son
+  las que **casi no exploran o tienen pocas vueltas**: con `a` = 0.5
+  (ejecución 16) se queda en 51.8, atorada en un hoyito, y con 50 vueltas
+  (ejecución 11) en 6.1e-6. Con 30 variables (ejecución 25) también llega a
+  0.
+- **Ackley:** todo queda prácticamente en 0, menos las de **poco esfuerzo**:
+  50 vueltas (6.3e-8) y 15 ballenas × 100 vueltas (5.7e-12).
+- **Sphere:** siempre llega casi a 0; lo que cambia es qué tan fino afina, y
+  depende sobre todo de las **vueltas**: 6.9e-5 con 50 vueltas, 1.3e-11 con
+  la combinación ligera y 1.4e-185 con 1000 vueltas. Con 30 variables queda
+  en 2.2e-33, igual de bien que con 10.
+- **Rosenbrock:** es la que más varía. 14 de 25 ejecuciones se quedan arriba
+  de 7.5 (en el centro, donde vale 9; ver 4.4) y solo 8 bajan de 0.5. Las
+  mejores son la combinación intensiva de 60 × 400 (0.025), `b` = 2.5
+  (0.071) y `a` = 3 (0.088). Con 30 variables (ejecución 25) empeora mucho:
+  28.7.
+- **Beale:** todas llegan casi a 0 menos la ejecución 3 (base con semilla
+  2), que se atora en 0.76, su mínimo local.
+
+**La lección más importante de esta tabla: una sola corrida engaña.** Las
+ejecuciones 1 a 5 son exactamente la misma configuración y solo cambia la
+semilla, y en Rosenbrock dan 6.15, 8.57, 0.17, 8.90 y 0.15: con la misma
+configuración puede salir muy bien o muy mal. Por eso:
+
+- Las conclusiones sobre cada ajuste conviene sacarlas de los barridos de 30
+  corridas (secciones 4.1 a 4.6), y usar la Tabla 1 como ejemplo.
+- Cuando coinciden, la Tabla 1 confirma los barridos: `a` = 3 ayuda a
+  Rosenbrock (0.088 aquí; mediana 0.09 en 30 corridas) y pocas vueltas
+  empeoran todas las funciones.
+- Cuando la Tabla 1 trae un valor que no está en los barridos (por ejemplo
+  `b` = 2.5 o 30 variables), con una sola corrida no se puede decir si fue
+  el ajuste o la suerte. Para afirmarlo habría que repetirlo 30 veces.
 
 ---
 
@@ -723,7 +801,7 @@ números son el lugar que saca en cada función (de 81).*
 
 Ideas para escribir con sus palabras:
 
-1. **WOA funciona**: con los valores del artículo resolvió casi
+1. **WOA funciona**: con los valores por defecto resolvió casi
    perfecto 3 de las 5 funciones.
 2. **Pero parte de ese éxito es "trampa"**: esas 3 funciones tienen el mínimo
    en el centro, y WOA tiene preferencia por el centro. Al mover el mínimo,
@@ -744,11 +822,19 @@ Ideas para escribir con sus palabras:
 7. **Los ajustes se combinan** (sección 4.6): `a = 1` y `p = 0.2` juntos
    arruinan Rastrigin, aunque por separado solo causaban algunas corridas
    malas. La mejor combinación de cada función es distinta, y la del
-   artículo es un término medio que no gana en ninguna pero tampoco falla.
+   de por defecto es un término medio que no gana en ninguna pero tampoco
+   falla.
+8. **Una sola corrida no basta para comparar** (Tabla 1, sección 4.7): con
+   la misma configuración y otra semilla, Rosenbrock va de 0.15 a 8.90.
+   Por eso las conclusiones salen de 30 corridas por valor.
 
 **Limitaciones (es bueno decirlas):**
 
-- Solo probamos 10 variables para las funciones que permiten más.
+- Con 30 variables solo hay **una corrida** por función (ejecución 25 de la
+  Tabla 1): Rosenbrock empeora y Rastrigin y Sphere no, pero habría que
+  repetirlo 30 veces para asegurarlo. Todo lo demás usa 10 variables.
+- La Tabla 1 usa una corrida por fila, así que sus diferencias pueden ser
+  suerte (sección 4.7).
 - Los dominios de Sphere y Rosenbrock los elegimos nosotras (aunque
   coinciden con los del artículo).
 - Usamos 200 vueltas en lugar de las 500 del artículo.
@@ -758,7 +844,8 @@ Ideas para escribir con sus palabras:
 - Nuestros números no son directamente comparables con los del artículo
   (sección 4.5).
 
-**Qué se podría hacer después:** probar con más variables, probar las
+**Qué se podría hacer después:** repetir las ejecuciones de la Tabla 1
+con 30 corridas cada una, probar con más variables, probar las
 combinaciones con otros esfuerzos, o comparar WOA contra otro algoritmo con
 las funciones movidas.
 
@@ -785,7 +872,8 @@ las funciones movidas.
 
 ## Anexo A. Todas las tablas
 
-Los mismos datos que los CSV de `resultados/`, 30 corridas por fila.
+Los mismos datos que los CSV de `resultados/`, 30 corridas por fila
+(salvo A.8, la Tabla 1, que es 1 corrida por fila).
 Error = qué tan lejos quedó del mínimo real (0). En **negritas** el valor
 por defecto de cada parámetro.
 
@@ -948,6 +1036,43 @@ Fuente: `resultados/6_sesgo_centro/resumen.csv`
 | Sphere | 10 | 30 | 4.88 | 2.34 | 7.7 | 0.0587 | 40.6 |
 <!-- /auto -->
 
+### A.8 Tabla 1: 25 ejecuciones por función (1 corrida cada una)
+
+Ajustes de las funciones de n variables. \* En la ejecución 25, Rastrigin,
+Sphere y Rosenbrock usan 30 variables; Ackley y Beale usan 50 ballenas, 300
+vueltas, `a` = 1.5, `b` = 0.5 y `p` = 0.3. Las columnas de cada función son
+el mejor valor encontrado.
+
+<!-- auto:anexo_tabla25 -->
+| # | Bloque | Ballenas | Vueltas | a | b | p | Variables | Semilla | Rastrigin | Ackley | Sphere | Rosenbrock | Beale |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 1. Base y azar | 30 | 200 | 2 | 1 | 0.5 | 10 / 2 | 0 | 0 | 3.55e-15 | 1.92e-31 | 6.15 | 1.12e-08 |
+| 2 | 1. Base y azar | 30 | 200 | 2 | 1 | 0.5 | 10 / 2 | 1 | 0 | 0 | 2.38e-33 | 8.57 | 1.48e-08 |
+| 3 | 1. Base y azar | 30 | 200 | 2 | 1 | 0.5 | 10 / 2 | 2 | 0 | 3.55e-15 | 5.64e-33 | 0.166 | 0.762 |
+| 4 | 1. Base y azar | 30 | 200 | 2 | 1 | 0.5 | 10 / 2 | 3 | 0 | 3.55e-15 | 3.51e-35 | 8.9 | 5.46e-10 |
+| 5 | 1. Base y azar | 30 | 200 | 2 | 1 | 0.5 | 10 / 2 | 4 | 0 | 3.55e-15 | 2.72e-30 | 0.155 | 6.91e-08 |
+| 6 | 2. Población (N) | 5 | 200 | 2 | 1 | 0.5 | 10 / 2 | 0 | 0 | 7.11e-15 | 7.48e-14 | 8.93 | 7.39e-06 |
+| 7 | 2. Población (N) | 15 | 200 | 2 | 1 | 0.5 | 10 / 2 | 0 | 0 | 3.55e-15 | 3.38e-27 | 1.42 | 5.68e-09 |
+| 8 | 2. Población (N) | 50 | 200 | 2 | 1 | 0.5 | 10 / 2 | 0 | 0 | 3.55e-15 | 1.90e-37 | 0.424 | 3.36e-11 |
+| 9 | 2. Población (N) | 80 | 200 | 2 | 1 | 0.5 | 10 / 2 | 0 | 0 | 7.11e-15 | 6.96e-42 | 7.97 | 3.50e-10 |
+| 10 | 2. Población (N) | 120 | 200 | 2 | 1 | 0.5 | 10 / 2 | 0 | 0 | 3.55e-15 | 4.63e-46 | 0.0312 | 5.93e-12 |
+| 11 | 3. Iteraciones | 30 | 50 | 2 | 1 | 0.5 | 10 / 2 | 0 | 6.07e-06 | 6.32e-08 | 6.92e-05 | 8.73 | 1.54e-06 |
+| 12 | 3. Iteraciones | 30 | 100 | 2 | 1 | 0.5 | 10 / 2 | 0 | 0 | 3.55e-15 | 2.43e-16 | 8.9 | 2.57e-09 |
+| 13 | 3. Iteraciones | 30 | 300 | 2 | 1 | 0.5 | 10 / 2 | 0 | 0 | 0 | 1.05e-55 | 8.63 | 6.93e-10 |
+| 14 | 3. Iteraciones | 30 | 500 | 2 | 1 | 0.5 | 10 / 2 | 0 | 0 | 0 | 3.94e-91 | 0.775 | 2.69e-11 |
+| 15 | 3. Iteraciones | 30 | 1000 | 2 | 1 | 0.5 | 10 / 2 | 0 | 0 | 0 | 1.43e-185 | 0.183 | 6.26e-11 |
+| 16 | 4. Expl. / Explot. | 30 | 200 | 0.5 | 1 | 0.5 | 10 / 2 | 0 | 51.8 | 7.11e-15 | 7.24e-25 | 8.72 | 9.46e-08 |
+| 17 | 4. Expl. / Explot. | 30 | 200 | 1 | 1 | 0.5 | 10 / 2 | 0 | 0 | 3.55e-15 | 7.50e-34 | 8.93 | 2.35e-08 |
+| 18 | 4. Expl. / Explot. | 30 | 200 | 3 | 1 | 0.5 | 10 / 2 | 0 | 0 | 3.55e-15 | 5.67e-26 | 0.0878 | 3.70e-10 |
+| 19 | 4. Expl. / Explot. | 30 | 200 | 2 | 1 | 0.2 | 10 / 2 | 0 | 2.84e-14 | 7.11e-15 | 1.31e-27 | 8.89 | 7.86e-13 |
+| 20 | 4. Expl. / Explot. | 30 | 200 | 2 | 1 | 0.8 | 10 / 2 | 0 | 0 | 7.11e-15 | 1.97e-33 | 8.9 | 1.79e-07 |
+| 21 | 5. Espiral y comb. | 30 | 200 | 2 | 0.2 | 0.5 | 10 / 2 | 0 | 0 | 7.11e-15 | 8.71e-37 | 8.9 | 8.40e-10 |
+| 22 | 5. Espiral y comb. | 30 | 200 | 2 | 2.5 | 0.5 | 10 / 2 | 0 | 0 | 0 | 6.09e-32 | 0.0709 | 1.00e-13 |
+| 23 | 5. Espiral y comb. | 15 | 100 | 2 | 1 | 0.5 | 10 / 2 | 0 | 2.34e-10 | 5.71e-12 | 1.28e-11 | 8.92 | 6.32e-07 |
+| 24 | 5. Espiral y comb. | 60 | 400 | 2.5 | 1 | 0.5 | 10 / 2 | 0 | 0 | 0 | 8.68e-66 | 0.0252 | 1.65e-09 |
+| 25 | 5. Espiral y comb. | 30 | 200 | 2 | 1 | 0.5 | 30 / 2* | 0 | 0 | 3.55e-15 | 2.15e-33 | 28.7 | 6.99e-09 |
+<!-- /auto -->
+
 ---
 
 ## Anexo B. Todas las gráficas en una
@@ -968,8 +1093,11 @@ descargas*.
 - [ ] Introducción: qué es optimizar, qué es WOA y de dónde sale.
 - [ ] Desarrollo: las 3 maneras de moverse, el papel de `a`, fórmulas,
       pseudocódigo, las 5 funciones y nuestras decisiones.
-- [ ] Experimentación: 30 corridas, semillas, un parámetro a la vez, tabla
-      de valores probados.
+- [ ] Experimentación: la Tabla 1 (25 ejecuciones por función, 1 corrida
+      cada una), por qué además 30 corridas por valor, semillas y la tabla
+      de valores probados en los barridos.
+- [ ] Resultados de la Tabla 1 (sección 4.7, Figura 17): qué muestra y por
+      qué una sola corrida no basta.
 - [ ] Resultados: tabla base + gráficas, y **para cada parámetro el "por
       qué"**.
 - [ ] Experimento del mínimo movido.

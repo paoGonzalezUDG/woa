@@ -335,7 +335,9 @@ INTRO_SECCION = {
     "Probar tú": "Corre tus propios experimentos con muchas repeticiones "
                  "(tardan unos segundos o minutos).",
     "Resultados": "Los experimentos ya hechos para el reporte (30 corridas "
-                  "cada uno). No usan la barra izquierda: abren al instante.",
+                  "cada uno, salvo la Tabla 1 de 25 ejecuciones: 1 corrida "
+                  "por fila). No usan la barra izquierda: abren al "
+                  "instante.",
 }
 (sec_inicio, sec_ver, sec_probar, sec_res, sec_rep) = st.tabs(list(SECCIONES))
 with sec_ver:
@@ -1194,14 +1196,8 @@ with tab_diseno:
                 help="Las mismas tablas y las notas, listas para pegar "
                      "en la sección 3 del reporte. Se vuelve a generar con "
                      "`python -m interfaz.diseno`.")
-    st.subheader("1. Valores por defecto (configuración base)")
-    st.dataframe(diseno.tabla_base(), hide_index=True)
-    st.subheader("2. Funciones de prueba")
-    st.dataframe(diseno.tabla_funciones(), hide_index=True)
-    st.caption("\\* Sphere y Rosenbrock no tienen límite en Wikipedia: la "
-               "zona de búsqueda la elegimos nosotras.")
-    st.subheader("3. Diseño experimental de 25 ejecuciones por función")
-    st.caption("La Tabla 1 del reporte. **Una corrida por fila**, con la "
+    st.subheader("1. Diseño experimental de 25 ejecuciones por función")
+    st.caption("La Tabla 1 del reporte (diseño de Diana). **Una corrida por fila**, con la "
                "semilla indicada (125 en total). En azul, lo que cambia "
                "respecto a la base. Variables 10 / 2 = las funciones de n "
                "variables / Ackley y Beale.")
@@ -1209,7 +1205,7 @@ with tab_diseno:
     st.dataframe(resaltar_cambio(df_25, cambia_25), hide_index=True,
                  height=35 * (len(df_25) + 1) + 3)
     st.caption(diseno.nota_fila_25())
-    st.subheader("4. Resultado de cada ejecución")
+    st.subheader("2. Resultado de cada ejecución")
     if not os.path.exists(diseno.CSV_TABLA_25):
         st.warning("Falta `resultados/9_tabla_25/corridas.csv`. Se crea con "
                    "`python experimentos.py --solo-tabla-25` (menos de 1 "
@@ -1227,6 +1223,12 @@ with tab_diseno:
         st.caption("Ojo: con **una sola corrida** por fila pesa mucho el "
                    "azar. Para comparar ajustes, mejor las medianas de 30 "
                    "corridas (Tabla 5 y *Todas las cajas*).")
+    st.subheader("3. Valores por defecto (configuración base)")
+    st.dataframe(diseno.tabla_base(), hide_index=True)
+    st.subheader("4. Funciones de prueba")
+    st.dataframe(diseno.tabla_funciones(), hide_index=True)
+    st.caption("\\* Sphere y Rosenbrock no tienen límite en Wikipedia: la "
+               "zona de búsqueda la elegimos nosotras.")
     st.subheader("5. Barridos con 30 corridas por valor")
     st.caption("Los que usan las gráficas de caja y las medianas del "
                "reporte. En azul, el valor que cambia respecto a la base.")
@@ -1238,9 +1240,9 @@ with tab_diseno:
         st.markdown("\n".join(f"- {n}" for n in diseno.notas()))
 
     st.subheader("7. ¿Qué pasa en cada función?")
-    st.write("Lo que salió de esas corridas, para no tener que probar "
-             "ajustes uno por uno. Todos los números vienen de "
-             "`resultados/` (30 corridas por valor).")
+    st.write("Lo que salió de los barridos (Tabla 5), para no tener que "
+             "probar ajustes uno por uno. Todos los números son de 30 "
+             "corridas por valor, no de la Tabla 1 (1 corrida por fila).")
     st.dataframe(diseno.RESUMEN, hide_index=True)
     with st.expander("Lo que no hace falta probar", expanded=True):
         st.markdown(diseno.NO_HACE_FALTA)
@@ -1405,7 +1407,8 @@ mismo trabajo. Así la comparación es justa.
         c2.metric("Lugar de la de por defecto",
                   f"{int(dfl_c.lugar)} de {total_comb}",
                   help="30 ballenas × 200 vueltas, a = 2, b = 1, p = 0.5 "
-                       "(los valores del artículo).")
+                       "(los valores por defecto; a, b y p son los del "
+                       "artículo, las 200 vueltas las elegimos nosotras).")
         c3.metric("Empatadas en 1er lugar", empatadas,
                   help="Combinaciones cuyas 25 corridas dieron exactamente "
                        "lo mismo que la mejor (normalmente: todas en 0).")
@@ -1465,7 +1468,8 @@ mismo trabajo. Así la comparación es justa.
 
 with tab_res:
     st.write("Las tablas y gráficas que usamos en el reporte. Cada "
-             "configuración se corrió **30 veces**.")
+             "configuración se corrió **30 veces**, salvo la Tabla 1 de "
+             "25 ejecuciones (`9_tabla_25`), que es **1 corrida por fila**.")
     if not os.path.isdir(CARPETA_RES):
         st.warning("No existe la carpeta resultados/. Se crea con "
                    "`python experimentos.py`.")

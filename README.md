@@ -91,7 +91,7 @@ raíz a propósito: GitHub, `pip` y las herramientas los buscan ahí.
 |---|---|---|
 | `algoritmo/woa.py` | Pone las ballenas al azar y en cada vuelta mueve a cada una con una de las 3 reglas (rodear, buscar o espiral). Regresa la mejor respuesta. | **Sí, bien** |
 | `algoritmo/funciones.py` | Las fórmulas de las 5 funciones, su dominio y dónde está su mínimo. | Sí |
-| `experimentos.py` | Repite el algoritmo 30 veces por configuración, saca promedios, genera la carpeta `resultados/` y actualiza la guía del reporte. | La idea general |
+| `experimentos.py` | Repite el algoritmo 30 veces por configuración (y corre la Tabla 1 de 25 ejecuciones, 1 corrida cada una), saca promedios, genera la carpeta `resultados/` y actualiza la guía del reporte. | La idea general |
 | `interfaz/paso_a_paso.py` | Hace exactamente lo mismo que `woa.py` (da los mismos resultados), pero guarda todos los números de cada ballena para mostrarlos en la app. | Ayuda a estudiar |
 | `app.py`, `interfaz/visual.py` y `interfaz/visual3d.py` | La interfaz, sus dibujos y la simulación 3D. | No |
 
@@ -160,7 +160,8 @@ deben salir de *Probar tú › Muchas corridas* o de la carpeta `resultados/`
 ## 4. La carpeta resultados
 
 Aquí están las tablas (`.csv`, se abren en Excel) y las gráficas (`.png`)
-para el reporte. Cada configuración se corrió **30 veces**.
+para el reporte. Cada configuración se corrió **30 veces**, salvo `9_tabla_25/`
+(la Tabla 1 del reporte: 25 ejecuciones por función, 1 corrida cada una).
 
 ```
 resultados/

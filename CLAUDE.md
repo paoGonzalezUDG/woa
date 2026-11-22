@@ -44,8 +44,10 @@ Correr todo desde la raiz del proyecto.
   (HTML impreso con Edge/Chrome headless; no hay reportlab). Si cambian los
   experimentos, regenerar el PDF. Pestana Resultados > Diseño del experimento.
   Seccion 5 "Que pasa en cada funcion": `EXPLICACION`, `RESUMEN`,
-  `NO_HACE_FALTA` (texto a mano; secciones 1-6 = tablas: 3 y 4 son la
-  Tabla 1 de 25 ejecuciones y sus resultados, 5 los barridos) y `DATOS` (sus numeros; una prueba los
+  `NO_HACE_FALTA` (texto a mano). Tablas de la pestana y del PDF: 1 = Tabla 1
+  de Diana (25 ejecuciones), 2 = sus resultados, 3 = base, 4 = funciones,
+  5 = barridos de 30 corridas, 6 = adicionales. `DATOS` (numeros de
+  EXPLICACION; una prueba los
   compara con finales.csv: si cambian los resultados, corregir el texto).
 - `interfaz/combinaciones.py`: lee `8_combinaciones/resumen.csv`; tabla top,
   `figura_lugar_promedio` (que valor de cada ajuste queda mas arriba) y
@@ -89,7 +91,8 @@ Correr todo desde la raiz del proyecto.
   `REPARTOS` (10x600, 30x200, 60x100: mismo esfuerzo 6000) x a x b x p, 25
   corridas (semillas 0-24). resumen.csv con `lugar` (mediana, luego media,
   luego peor; empates exactos comparten lugar), cruce.png, mapa.png (lugar
-  promedio por valor) y terrenos.png. Seccion 4.6 del reporte usa estas
+  promedio por valor) y terrenos.png. Seccion 4.7 del reporte usa 9_tabla_25 (Figura 17,
+  Anexo A.8 auto `anexo_tabla25`; numeros en NUMEROS con `_t25`). Seccion 4.6 usa estas
   figuras; sus numeros
   estan en COMBOS y test_lugares_promedio_del_reporte (test_resultados).
 - El reporte incrusta PNG con `![..](../resultados/...)`; sus Anexos A/B se

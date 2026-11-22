@@ -152,7 +152,7 @@ def test_anexo_a_esta_al_dia():
     """Las tablas automaticas del reporte son exactamente las de los CSV."""
     texto = open(REPORTE, encoding="utf-8").read()
     nuevo, cambiados = reporte.actualizar_texto(texto)
-    assert texto.count("<!-- auto:") == 7
+    assert texto.count("<!-- auto:") == 8           # A.1 a A.8
     assert cambiados == [] and nuevo == texto
 
 
@@ -293,3 +293,20 @@ def test_nota_de_beale_en_la_tabla_25():
     b = t[t.funcion == "Beale"].set_index("ejecucion").mejor_f
     assert reporte.coincide(b[3], "0.76")
     assert all(b[k] < 1e-6 for k in (1, 2, 4, 5))
+
+
+def test_conteos_de_la_seccion_4_7():
+    t = pd.read_csv(os.path.join(RES, "9_tabla_25", "corridas.csv"))
+    f = lambda nom: t[t.funcion == nom].mejor_f
+    c = reporte.CONTEOS_T25
+    assert (f("Rastrigin") == 0).sum() == c["rastrigin_ceros"]
+    assert (f("Rosenbrock") > 7.5).sum() == c["rosenbrock_arriba_7.5"]
+    assert (f("Rosenbrock") < 0.5).sum() == c["rosenbrock_abajo_0.5"]
+    texto = open(REPORTE, encoding="utf-8").read()
+    for frase in (f"{c['rastrigin_ceros']} de 25 ejecuciones llegan a 0",
+                  f"{c['rosenbrock_arriba_7.5']} de 25 ejecuciones se quedan",
+                  f"solo {c['rosenbrock_abajo_0.5']} bajan de 0.5"):
+        assert frase in texto, frase
+    # "Ackley: todo queda practicamente en 0, menos las de poco esfuerzo"
+    ack = t[(t.funcion == "Ackley") & ~t.ejecucion.isin([11, 23])].mejor_f
+    assert ack.max() < 1e-14

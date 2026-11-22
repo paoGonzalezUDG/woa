@@ -14,7 +14,7 @@ navegador con las 5 funciones: 0 errores).
 - [ ] **Sección 3 (experimentación):** la Tabla 1 de Diana (25 ejecuciones
       por función, 1 corrida cada una) **ya se corrió tal cual**:
       `resultados/9_tabla_25/` y la app (*Resultados › Diseño del
-      experimento*, tablas 3 y 4). Falta corregir dos frases del texto:
+      experimento*, tablas 1 y 2; en la guía, sección 3, 4.7 y Anexo A.8). Falta corregir dos frases del texto:
       que 200 vueltas es "estándar de la literatura" (la elegimos nosotras;
       el artículo usa 500) y que "se modifica un parámetro a la vez" (las
       filas 23, 24 y 25 mueven varios). Y decir que con 1 corrida por fila
