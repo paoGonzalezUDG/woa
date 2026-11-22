@@ -88,7 +88,8 @@ def test_carga_inicial():
     assert [t.label for t in at.tabs] == [
         "Inicio", "Ver el algoritmo", "Una corrida", "Simulación 3D",
         "Paso a paso", "Comparar", "Probar tú", "Muchas corridas",
-        "Sesgo al centro", "Resultados", "Todas las cajas",
+        "Sesgo al centro", "Resultados", "Diseño del experimento",
+        "Todas las cajas",
         "Mejor combinación", "Tablas y descargas", "Reporte"]
 
 
@@ -404,3 +405,24 @@ def test_pestana_mejor_combinacion(app, nombre):
 def test_pestana_reporte_encuentra_todas_las_imagenes(app):
     _sin_errores(app)
     assert not [t for t in _textos(app.warning) if "No se encontró" in t]
+
+
+def test_pestana_diseno_del_experimento(app):
+    from interfaz import diseno
+    tablas = [d.value for d in app.dataframe]
+    barr = diseno.tabla_barridos()
+    assert any(len(t) == len(barr) and list(t.columns) == list(barr.columns)
+               for t in tablas)
+    textos = " ".join(m.value for m in app.markdown)
+    assert "13,125" in textos
+
+
+@pytest.mark.parametrize("nombre", FUNC)
+def test_diseno_que_pasa_en_cada_funcion(app, nombre):
+    from interfaz import diseno
+    at = app
+    at.radio(key="dis_func").set_value(nombre).run()
+    _sin_errores(at)
+    textos = " ".join(m.value for m in at.markdown)
+    assert diseno.EXPLICACION[nombre].strip()[:40] in textos
+    assert any("Mejor combinación" in i.value for i in at.info)

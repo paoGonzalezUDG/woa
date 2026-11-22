@@ -11,6 +11,14 @@ navegador con las 5 funciones: 0 errores).
 - [ ] **Escribirlo con sus propias palabras** y en tono formal, siguiendo
       [reporte_referencia.md](reporte_referencia.md) (también en la app,
       sección *Reporte*).
+- [ ] **Sección 3 (experimentación): corregir la Tabla 1 de Diana.** La que
+      tienen (25 corridas por función, seed 0, N = 5/15/80/120, T = 300/1000,
+      b = 0.2/2.5, d = 30…) **no es lo que se corrió**. Lo real está en la
+      app (*Resultados › Diseño del experimento*) y en
+      `docs/diseno_experimental.pdf`: 30 corridas por configuración
+      (semillas 0–29), 13 configuraciones por función y 13,125 corridas en
+      total. El texto también dice que 200 vueltas es "de la literatura" y
+      que siempre cambia un solo ajuste: las dos cosas son falsas.
 - [ ] **Discusión de cada parámetro** (sección 4.2 de la guía, figuras 2 a
       10). Para no poner tantas gráficas, pueden usar una sola:
       `resultados/7_panorama/cajas.png` (las 25 cajas juntas).
@@ -52,9 +60,14 @@ navegador con las 5 funciones: 0 errores).
       `python -m pip install -r requirements.txt`.
 - [ ] (Opcional) Si cambian algo del algoritmo o de los experimentos:
       `python experimentos.py` (~20 min) regenera todo y avisa qué números
-      del texto de la guía hay que corregir a mano.
+      del texto de la guía hay que corregir a mano. Después, también
+      `python -m interfaz.diseno` para rehacer el PDF del diseño.
 
 ## Ya comprobado (no hace falta revisarlo otra vez)
+
+- [x] **Diseño del experimento (22 de noviembre de 2026):** las tablas de la
+      app y del PDF salen de `experimentos.py` y una prueba las compara con
+      `finales.csv`, `8_combinaciones/` y `6_sesgo_centro/`.
 
 - [x] **Pruebas de humo (21 de noviembre de 2026):**
   - [x] 292 pruebas automáticas rápidas: todas pasan.

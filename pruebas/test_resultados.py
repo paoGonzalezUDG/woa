@@ -179,3 +179,55 @@ def test_imagenes_del_reporte_existen():
     for r in rutas:
         assert os.path.exists(os.path.normpath(
             os.path.join(os.path.dirname(REPORTE), r))), r
+
+
+# --------------------------------------------------------------------------
+# 3) Tablas del diseno experimental (seccion 3) contra los CSV
+# --------------------------------------------------------------------------
+def test_diseno_cuadra_con_los_csv():
+    from interfaz import diseno
+    t = diseno.totales()
+    fin = pd.read_csv(os.path.join(RES, "7_panorama", "finales.csv"))
+    assert len(fin) == t["barridos"]
+    assert set(fin.corrida) == set(range(diseno.N_CORRIDAS))
+    assert fin.groupby(["funcion", "parametro", "valor"]).size().eq(
+        diseno.N_CORRIDAS).all()
+    # cada fila de la tabla 3 (salvo la base) es un valor que si se corrio
+    barr, cambia = diseno.filas_barridos()
+    col_a_par = {v: k for k, v in diseno.COLUMNAS_PAR.items()}
+    for (_, fila), col in zip(barr.iterrows(), cambia):
+        if col:
+            par = col_a_par[col]
+            assert np.isclose(fin[fin.parametro == par].valor,
+                              float(fila[col])).any(), (par, fila[col])
+    comb = pd.read_csv(os.path.join(RES, "8_combinaciones", "resumen.csv"))
+    assert len(comb) * diseno.N_COMBINACIONES == t["combinaciones"]
+    ses = pd.read_csv(os.path.join(RES, "6_sesgo_centro", "resumen.csv"))
+    assert len(ses) * diseno.N_CORRIDAS == t["sesgo"]
+    ros = pd.read_csv(os.path.join(RES, "6_sesgo_centro", "rosenbrock.csv"))
+    assert ros.corridas.sum() == t["rosenbrock"]
+    assert t["total"] == 13125
+
+
+def test_pdf_del_diseno_existe():
+    from interfaz import diseno
+    assert os.path.exists(diseno.PDF), "correr: python -m interfaz.diseno"
+
+
+@pytest.mark.parametrize("funcion, par, valor, que, escrito",
+                         __import__("interfaz.diseno").diseno.DATOS)
+def test_numero_de_que_pasa_en_cada_funcion(funcion, par, valor, que, escrito):
+    from interfaz import diseno
+    fin = pd.read_csv(diseno.FINALES)
+    real = diseno.dato(fin, funcion, par, valor, que)
+    assert reporte.coincide(real, escrito), \
+        f"{funcion} {par}={valor} {que}: texto {escrito}, CSV {real:.4g}"
+    assert escrito in diseno.EXPLICACION[funcion]
+
+
+def test_beale_siempre_tiene_entre_2_y_7_atoradas():
+    from interfaz import diseno
+    fin = pd.read_csv(diseno.FINALES)
+    t = diseno.tabla_por_valor(fin, "Beale")
+    assert t.iloc[:, -1].between(2, 7).all()
+    assert t.iloc[:, -1].min() == 2 and t.iloc[:, -1].max() == 7

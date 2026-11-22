@@ -38,13 +38,22 @@ Correr todo desde la raiz del proyecto.
   (el `pip` suelto apunta a otro Python 3.13).
 - `interfaz/cajas.py`: `figura_cajas(df, funciones, por_defecto, ver_puntos)`
   -> Plotly 5x5 de cajas desde `7_panorama/finales.csv` (no recorre nada).
+- `interfaz/diseno.py`: tablas del diseno experimental (seccion 3) armadas
+  desde las constantes de experimentos.py; `filas_barridos()`, `totales()`,
+  `notas()`. `python -m interfaz.diseno` escribe `docs/diseno_experimental.pdf`
+  (HTML impreso con Edge/Chrome headless; no hay reportlab). Si cambian los
+  experimentos, regenerar el PDF. Pestana Resultados > Diseño del experimento.
+  Seccion 5 "Que pasa en cada funcion": `EXPLICACION`, `RESUMEN`,
+  `NO_HACE_FALTA` (texto a mano) y `DATOS` (sus numeros; una prueba los
+  compara con finales.csv: si cambian los resultados, corregir el texto).
 - `interfaz/combinaciones.py`: lee `8_combinaciones/resumen.csv`; tabla top,
   `figura_lugar_promedio` (que valor de cada ajuste queda mas arriba) y
   `figura_cruce` (lugar de la ganadora de cada funcion en las demas).
 - `app.py`: Streamlit, 5 secciones (st.tabs, `SECCIONES`) con subpestanas
   adentro: Inicio (glosario) | Ver el algoritmo: Una corrida, Simulacion 3D,
   Paso a paso, Comparar | Probar tu: Muchas corridas, Sesgo al centro |
-  Resultados: Todas las cajas, Mejor combinacion, Tablas y descargas |
+  Resultados: Diseño del experimento, Todas las cajas, Mejor combinacion,
+  Tablas y descargas |
   Reporte. CSS al inicio: secciones grandes, subsecciones como botones
   (selectores `[data-testid=stTab]`, streamlit 1.65). Solo UI.
   `texto_ajustes()` pone una linea "⚙️ Ajustes: ..." (lo distinto al valor

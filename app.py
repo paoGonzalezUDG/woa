@@ -19,7 +19,8 @@ import streamlit as st
 from algoritmo.funciones import FUNCIONES
 from algoritmo.woa import woa
 from experimentos import PARAMS_DEFAULT, barrido
-from interfaz import cajas, combinaciones, paso_a_paso, visual, visual3d
+from interfaz import (cajas, combinaciones, diseno, paso_a_paso, visual,
+                      visual3d)
 
 st.set_page_config(page_title="WOA - Proyecto final", layout="wide")
 # Secciones (arriba) grandes; subsecciones (adentro) como botoncitos, para
@@ -309,8 +310,8 @@ SECCIONES = {
     "Ver el algoritmo": ["Una corrida", "Simulación 3D", "Paso a paso",
                          "Comparar"],
     "Probar tú": ["Muchas corridas", "Sesgo al centro"],
-    "Resultados": ["Todas las cajas", "Mejor combinación",
-                   "Tablas y descargas"],
+    "Resultados": ["Diseño del experimento", "Todas las cajas",
+                   "Mejor combinación", "Tablas y descargas"],
     "Reporte": [],
 }
 INTRO_SECCION = {
@@ -330,7 +331,7 @@ with sec_probar:
     tab3, tab4 = st.tabs(SECCIONES["Probar tú"])
 with sec_res:
     st.caption(INTRO_SECCION["Resultados"])
-    tab_cajas, tab_comb, tab_res = st.tabs(SECCIONES["Resultados"])
+    tab_diseno, tab_cajas, tab_comb, tab_res = st.tabs(SECCIONES["Resultados"])
 tab_inicio, tab_rep = sec_inicio, sec_rep
 
 
@@ -452,7 +453,7 @@ La app tiene **5 secciones** (arriba). Ve en este orden:
 |---|---|---|
 | **1. Ver el algoritmo** | Entender cómo se mueven las ballenas | Una corrida · Simulación 3D · Paso a paso · Comparar |
 | **2. Probar tú** | Correr tus propios experimentos | Muchas corridas · Sesgo al centro |
-| **3. Resultados** | Los experimentos ya hechos para el reporte | Todas las cajas · Mejor combinación · Tablas y descargas |
+| **3. Resultados** | Los experimentos ya hechos para el reporte | Diseño del experimento · Todas las cajas · Mejor combinación · Tablas y descargas |
 | **4. Reporte** | La guía para escribir el reporte | |
 
 Los ajustes de la **barra izquierda** se usan en *Ver el algoritmo* y
@@ -1131,6 +1132,103 @@ CONCLUSION_CAJAS = """
 Para el reporte, esta figura (`resultados/7_panorama/cajas.png`) puede
 sustituir las 9 gráficas sueltas de la sección 4.2.
 """
+
+
+@st.cache_data(show_spinner=False)
+def datos_finales(firma):
+    """'firma' = fecha del archivo: si se regenera, se vuelve a leer."""
+    return pd.read_csv(diseno.FINALES)
+
+
+@st.cache_data(show_spinner=False)
+def combos_finales(firma):
+    return combinaciones.leer(os.path.join(CARPETA_RES, "8_combinaciones",
+                                           "resumen.csv"))
+
+
+def resaltar_cambio(df, cambia):
+    """Pinta (azul claro, negritas) la celda del ajuste que cambia."""
+    estilo = pd.DataFrame("", index=df.index, columns=df.columns)
+    for i, col in enumerate(cambia):
+        if col:
+            estilo.iloc[i, df.columns.get_loc(col)] = (
+                "background-color: #d9ebf7; color: #12385c; font-weight: 700")
+    return df.style.apply(lambda _: estilo, axis=None)
+
+
+with tab_diseno:
+    st.write("Qué se corrió exactamente para el reporte: los valores, "
+             "cuántas corridas y con qué semillas. Las tablas salen "
+             "directo del código (`experimentos.py`), así que siempre "
+             "coinciden con lo que hay en `resultados/`.")
+    if os.path.exists(diseno.PDF):
+        with open(diseno.PDF, "rb") as fh:
+            st.download_button(
+                "📄 Descargar en PDF", fh.read(),
+                file_name="diseno_experimental.pdf", mime="application/pdf",
+                help="Las mismas 4 tablas y las notas, listas para pegar "
+                     "en la sección 3 del reporte. Se vuelve a generar con "
+                     "`python -m interfaz.diseno`.")
+    st.subheader("1. Valores por defecto (configuración base)")
+    st.dataframe(diseno.tabla_base(), hide_index=True)
+    st.subheader("2. Funciones de prueba")
+    st.dataframe(diseno.tabla_funciones(), hide_index=True)
+    st.caption("\\* Sphere y Rosenbrock no tienen límite en Wikipedia: la "
+               "zona de búsqueda la elegimos nosotras.")
+    st.subheader("3. Un ajuste a la vez (igual en las 5 funciones)")
+    st.caption("En azul, el valor que cambia respecto a la base. "
+               "Variables 10 / 2 = las funciones de n variables / Ackley y "
+               "Beale.")
+    df_barr, cambia_barr = diseno.filas_barridos()
+    st.dataframe(resaltar_cambio(df_barr, cambia_barr), hide_index=True)
+    st.subheader("4. Experimentos adicionales")
+    st.dataframe(diseno.tabla_adicionales(), hide_index=True)
+    with st.expander("Notas (totales y aclaraciones)", expanded=True):
+        st.markdown("\n".join(f"- {n}" for n in diseno.notas()))
+
+    st.subheader("5. ¿Qué pasa en cada función?")
+    st.write("Lo que salió de esas corridas, para no tener que probar "
+             "ajustes uno por uno. Todos los números vienen de "
+             "`resultados/` (30 corridas por valor).")
+    st.dataframe(diseno.RESUMEN, hide_index=True)
+    with st.expander("Lo que no hace falta probar", expanded=True):
+        st.markdown(diseno.NO_HACE_FALTA)
+    if not os.path.exists(diseno.FINALES):
+        st.warning("Falta `resultados/7_panorama/finales.csv`. Se crea con "
+                   "`python experimentos.py --solo-panorama` (unos 4 min).")
+    else:
+        fin_dis = datos_finales(os.path.getmtime(diseno.FINALES))
+        f_dis = st.radio("Función", list(FUNCIONES), horizontal=True,
+                         key="dis_func",
+                         help="Elige una función para ver qué le pasa con "
+                              "cada ajuste.")
+        st.markdown(diseno.EXPLICACION[f_dis])
+        arch_comb = os.path.join(CARPETA_RES, "8_combinaciones",
+                                 "resumen.csv")
+        if os.path.exists(arch_comb):
+            top = combos_finales(os.path.getmtime(arch_comb))
+            top = top[(top.funcion == f_dis) & (top.lugar == 1)]
+            mejor = top.iloc[0]
+            extra = (f" (empatan {len(top)} combinaciones en 1er lugar)"
+                     if len(top) > 1 else "")
+            st.info(f"🏆 **Mejor combinación** de las 81 (25 corridas "
+                    f"cada una): {combinaciones.texto(mejor)}, mediana "
+                    f"{num_corto(mejor.mediana)}{extra}. Más detalle en "
+                    "*Resultados › Mejor combinación*.")
+        with st.expander(f"Todos los números de {f_dis}"):
+            t = diseno.tabla_por_valor(fin_dis, f_dis)
+            st.dataframe(
+                t.style.format({"Mediana": num_corto, "Peor": num_corto}),
+                hide_index=True, column_config={
+                    "¿Base?": st.column_config.CheckboxColumn(
+                        help="Marcada = el valor por defecto (la base)."),
+                    "Mediana": st.column_config.Column(
+                        help=AYUDA_COLUMNA["Mediana"]),
+                    "Peor": st.column_config.Column(
+                        help=AYUDA_COLUMNA["Peor"])})
+            if f_dis in diseno.ATORADA:
+                st.caption(f"Atorada = la corrida terminó arriba de "
+                           f"{diseno.ATORADA[f_dis]:g}.")
 
 
 @st.cache_data(show_spinner=False)

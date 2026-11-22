@@ -123,6 +123,7 @@ La app tiene **5 secciones** arriba; algunas tienen subsecciones adentro.
 | **Ver el algoritmo** › Comparar | Dos valores de un ajuste lado a lado, con animación. | Entender **por qué** un ajuste cambia el resultado. |
 | **Probar tú** › Muchas corridas | Un ajuste probado muchas veces: tabla, gráficas y descarga en CSV. Avisa si va a tardar más de un minuto. | Sacar datos confiables. |
 | **Probar tú** › Sesgo al centro | La misma función con el mínimo movido de lugar. | El hallazgo más interesante. |
+| **Resultados** › Diseño del experimento | Qué se corrió exactamente: valores, corridas, semillas y totales, sacado del código. Se descarga en PDF (`docs/diseno_experimental.pdf`; se regenera con `python -m interfaz.diseno`). | La sección 3 del reporte (experimentación). |
 | **Resultados** › Todas las cajas | Todos los experimentos en una gráfica interactiva (funciones × ajustes). | Comparar todos los ajustes de un vistazo. |
 | **Resultados** › Mejor combinación | 81 combinaciones de ajustes con el mismo esfuerzo: la mejor de cada función y qué ajuste importa más. | Decidir qué ajustes convienen en cada función. |
 | **Resultados** › Tablas y descargas | Las gráficas y tablas de `resultados/`, con descarga (también todo en un .zip). | Bajar los archivos para el reporte. |
